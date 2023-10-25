@@ -2,6 +2,8 @@
 
 import numpy as np
 
+from . import preprocess
+
 class ConditionTrials:
     def __init__(self, dt, event_codes, event_times, lfp=None, mua=None,
                  spikes=None, zscore_mua=True):
@@ -9,6 +11,8 @@ class ConditionTrials:
         self._dt = dt
         self._event_codes = event_codes
         self._lfp, self._mua, self._spikes = lfp, mua, spikes
+        if zscore_mua:
+            self._mua = preprocess.zscore(self._mua)
 
         self._ntimes = None
         for thing in (lfp, mua, spikes):
