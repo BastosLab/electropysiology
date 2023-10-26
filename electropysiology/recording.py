@@ -103,7 +103,7 @@ class ConditionTrials:
         # TODO: store and fetch the analog signals that provide ground-truth for
         # time indexing.
 
-        return times, lfps, muas, spikes
+        return TimeLockedSeries(times, lfps, muas, spikes)
 
 class TimeLockedSeries:
     def __init__(self, times, lfp=None, mua=None, spikes=None):
