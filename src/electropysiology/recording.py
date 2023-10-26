@@ -14,14 +14,26 @@ class ConditionTrials:
         if zscore_mua:
             self._mua = preprocess.zscore(self._mua)
 
-        self._ntimes = None
+        self._shape = None
         for thing in (lfp, mua, spikes):
             if thing:
                 assert len(thing.shape) == 3 # Channels x Times x Trials
                 if ntimes:
-                    assert thing.shape[1] == self._ntimes
+                    assert thing.shape == self._shape
                 else:
-                    self._ntimes = thing.shape[1]
+                    self._shape = thing.shape
+
+    @property
+    def num_channels(self):
+        return self._shape[0]
+
+    @property
+    def num_times(self):
+        return self._shape[1]
+
+    @property
+    def num_trials(self):
+        return self._shape[2]
 
     @property
     def dt(self):
