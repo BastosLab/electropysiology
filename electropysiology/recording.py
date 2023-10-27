@@ -141,25 +141,18 @@ class ConditionTrials:
         return TimeLockedSeries(lfp, mua, spikes)
 
 class TimeLockedSeries:
-    def __init__(self, times, lfp=None, mua=None, spikes=None):
-        assert times is not None
+    def __init__(self, lfp=None, mua=None, spikes=None):
         assert lfp is not None or mua is not None or spikes is not None
 
-        self._times = times
         self._shape = None
         self._lfp, self._mua, self._spikes = lfp, mua, spikes
         for thing in (lfp, mua, spikes):
             if thing is not None:
-                assert len(thing.shape) == 3 # Channels x Times x Trials
+                assert len(thing.data.shape) == 3 # Channels x Times x Trials
                 if self._shape:
-                    assert thing.shape == self._shape
+                    assert thing.data.shape == self._shape
                 else:
-                    self._shape = thing.shape
-                assert self._shape[1] == times.shape[0]
-
-    @property
-    def times(self):
-        return self._times
+                    self._shape = thing.data.shape
 
     @property
     def lfp(self):
@@ -175,7 +168,7 @@ class TimeLockedSeries:
 
     @property
     def erp(self):
-        return self.lfp.mean(-1)
+        return self.lfp.data.mean(-1)
 
     def plot_erp(self):
-        plt.plot(self.times, self.erp.T)
+        plt.plot(self.lfp.times, self.erp.T)
