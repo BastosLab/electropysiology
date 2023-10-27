@@ -72,9 +72,9 @@ class ConditionTrials:
 
     def time_lock(self, event, duration=True, before=0., after=0.):
         onsets, offsets = self._event_bounds(event)
-        onsets = onsets - before
         if not isinstance(duration, bool):
             offsets = onsets + duration
+        onsets = onsets - before
         offsets = offsets + after
 
         first, last = onsets.min(), offsets.max()
