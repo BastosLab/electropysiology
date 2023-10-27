@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import collections.abc
 import math
 import numbers
 import numpy as np
@@ -7,13 +8,14 @@ import matplotlib.pyplot as plt
 
 from . import preprocess
 
-class Signal:
-    def __init__(self, data, dt, sampling_times, time_dim=1):
+class Signal(collections.abc.Sequence):
+    def __init__(self, data, dt, sampling_times):
+        assert len(data.shape) == 3
+        assert len(sampling_times) == data.shape[1]
+
         self._data = data
         self._dt = dt
         self._sampling_times = sampling_times
-        self._time_dim = time_dim
-        assert len(self._sampling_times) == self._data.shape[self._time_dim]
 
     @property
     def data(self):
@@ -28,26 +30,55 @@ class Signal:
         return 1. / self.dt
 
     def fmap(self, f):
-        return Signal(f(self.data), self.dt, self.sampling_times,
-                      self._time_dim)
+        return Signal(f(self.data), self.dt, self.sampling_times)
 
     @property
     def fNQ(self):
         return self.f0 / 2.
 
+    def mask_trial(self, tr, onset, offset):
+        first, last = self.sample_at(onset), self.sample_at(offset)
+        S = last - first
+        self._data[:, :first, tr] = np.zeros([self.num_channels, first])
+        self._data[:, S:, tr] = np.zeros([self.num_channels, len(self) - S])
+
     @property
-    def num_times(self):
+    def num_channels(self):
+        return self.data.shape[0]
+
+    def __len__(self):
         return len(self._sampling_times)
+
+    @property
+    def num_trials(self):
+        return self.data.shape[2]
 
     def sample_at(self, t):
         return np.nanargmin((self._sampling_times - t) ** 2)
 
     @property
     def T(self):
-        return self.dt * self.num_times
+        return self.dt * len(self)
+
+    @property
+    def times(self):
+        return self._sampling_times
 
     def time_to_samples(self, t):
         return math.ceil(t * self.f0)
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            key = slice(key, key+1, None)
+        if key.step is None:
+            key = slice(key.start, key.stop, 1)
+
+        duration = key.stop - key.start
+        times = np.linspace(key.start, key.stop, self.time_to_samples(duration))
+
+        key = slice(self.sample_at(key.start), self.sample_at(key.stop),
+                    key.step)
+        return Signal(self.data[:, key, :], self.dt, times)
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
