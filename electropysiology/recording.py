@@ -3,6 +3,7 @@
 import math
 import numbers
 import numpy as np
+import matplotlib.pyplot as plt
 
 from . import preprocess
 
@@ -71,9 +72,9 @@ class ConditionTrials:
 
     def time_lock(self, event, duration=True, before=0., after=0.):
         onsets, offsets = self._event_bounds(event)
-        onsets = onsets - before
         if not isinstance(duration, bool):
             offsets = onsets + duration
+        onsets = onsets - before
         offsets = offsets + after
 
         first, last = onsets.min(), offsets.max()
@@ -102,4 +103,44 @@ class ConditionTrials:
         # TODO: store and fetch the analog signals that provide ground-truth for
         # time indexing.
 
-        return times, lfps, muas, spikes
+        return TimeLockedSeries(times, lfps, muas, spikes)
+
+class TimeLockedSeries:
+    def __init__(self, times, lfp=None, mua=None, spikes=None):
+        assert times is not None
+        assert lfp is not None or mua is not None or spikes is not None
+
+        self._times = times
+        self._shape = None
+        self._lfp, self._mua, self._spikes = lfp, mua, spikes
+        for thing in (lfp, mua, spikes):
+            if thing is not None:
+                assert len(thing.shape) == 3 # Channels x Times x Trials
+                if self._shape:
+                    assert thing.shape == self._shape
+                else:
+                    self._shape = thing.shape
+                assert self._shape[1] == times.shape[0]
+
+    @property
+    def times(self):
+        return self._times
+
+    @property
+    def lfp(self):
+        return self._lfp
+
+    @property
+    def mua(self):
+        return self._mua
+
+    @property
+    def spikes(self):
+        return self._spikes
+
+    @property
+    def erp(self):
+        return self.lfp.mean(-1)
+
+    def plot_erp(self):
+        plt.plot(self.times, self.erp.T)
