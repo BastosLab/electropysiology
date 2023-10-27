@@ -7,6 +7,42 @@ import matplotlib.pyplot as plt
 
 from . import preprocess
 
+class Signal:
+    def __init__(self, data, dt, sampling_times, time_dim=1):
+        self._data = data
+        self._dt = dt
+        self._sampling_times = sampling_times
+        self._time_dim = time_dim
+        assert len(self._sampling_times) == self._data.shape[self._time_dim]
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def dt(self):
+        return self._dt
+
+    @property
+    def f0(self):
+        return 1. / self.dt
+
+    def fmap(self, f):
+        return Signal(f(self.data), self.dt, self.sampling_times,
+                      self._time_dim)
+
+    @property
+    def fNQ(self):
+        return self.f0 / 2.
+
+    @property
+    def num_times(self):
+        return len(self._sampling_times)
+
+    @property
+    def T(self):
+        return self.dt * self.num_times
+
 class ConditionTrials:
     def __init__(self, dt, events, sample_times, lfp=None, mua=None,
                  spikes=None, zscore_mua=True):
