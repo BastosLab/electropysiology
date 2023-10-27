@@ -85,9 +85,8 @@ class ConditionTrials:
                  zscore_mua=True):
         assert lfp is not None or mua is not None or spikes is not None
         self._events = events
-        self._sample_times = sample_times
         self._lfp, self._mua, self._spikes = lfp, mua, spikes
-        if zscore_mua and self._mua:
+        if zscore_mua and self._mua is not None:
             self._mua = self._mua.fmap(preprocess.zscore_trials)
 
         self._num_trials = None
@@ -95,13 +94,13 @@ class ConditionTrials:
             if thing is not None:
                 assert len(thing.data.shape) == 3 # Channels x Times x Trials
                 if self._num_trials:
-                    assert thing.shape[-1] == self._num_trials
+                    assert thing.num_trials == self._num_trials
                 else:
-                    self._num_trials = thing.shape[-1]
+                    self._num_trials = thing.num_trials
 
     @property
     def num_trials(self):
-        return self._shape[2]
+        return self._num_trials
 
     @property
     def events(self):
@@ -118,34 +117,28 @@ class ConditionTrials:
             offsets = onsets + duration
         onsets = onsets - before
         offsets = offsets + after
-
         first, last = onsets.min(), offsets.max()
-        max_samples = self.time_to_samples(last - first)
-        times = np.linspace(first, last, max_samples)
 
-        lfps, muas, spikes = None, None, None
+        lfp, mua, spikes = None, None, None
         if self._lfp is not None:
-            lfps = np.zeros([self.num_channels, max_samples, self.num_trials])
+            lfp = self._lfp[first:last]
         if self._mua is not None:
-            muas = np.zeros([self.num_channels, max_samples, self.num_trials])
+            mua = self._mua[first:last]
         if self._spikes is not None:
-            spikes = np.zeros([self.num_channels, max_samples, self.num_trials])
+            spike = self._spikes[first:last]
 
         for tr in range(self.num_trials):
-            onset = self.sample_at(onsets[tr])
-            offset = self.sample_at(offsets[tr])
-            S = offset - onset
-            if self._lfp is not None:
-                lfps[:, :S, tr] = self._lfp[:, onset:offset, tr]
-            if self._mua is not None:
-                muas[:, :S, tr] = self._mua[:, onset:offset, tr]
-            if self._spikes is not None:
-                spikes[:, :S, tr] = self._spikes[:, onset:offset, tr]
+            if lfp is not None:
+                lfp.mask_trial(tr, onsets[tr], offsets[tr])
+            if mua is not None:
+                mua.mask_trial(tr, onsets[tr], offsets[tr])
+            if spikes is not None:
+                spikes.mask_trial(tr, onsets[tr], offsets[tr])
 
         # TODO: store and fetch the analog signals that provide ground-truth for
         # time indexing.
 
-        return TimeLockedSeries(times, lfps, muas, spikes)
+        return TimeLockedSeries(lfp, mua, spikes)
 
 class TimeLockedSeries:
     def __init__(self, times, lfp=None, mua=None, spikes=None):
