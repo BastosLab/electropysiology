@@ -39,57 +39,38 @@ class Signal:
     def num_times(self):
         return len(self._sampling_times)
 
+    def sample_at(self, t):
+        return np.nanargmin((self._sampling_times - t) ** 2)
+
     @property
     def T(self):
         return self.dt * self.num_times
 
+    def time_to_samples(self, t):
+        return math.ceil(t * self.f0)
+
 class ConditionTrials:
-    def __init__(self, dt, events, sample_times, lfp=None, mua=None,
-                 spikes=None, zscore_mua=True):
+    def __init__(self, events, lfp=None, mua=None, spikes=None,
+                 zscore_mua=True):
         assert lfp is not None or mua is not None or spikes is not None
-        self._dt = dt
         self._events = events
         self._sample_times = sample_times
         self._lfp, self._mua, self._spikes = lfp, mua, spikes
         if zscore_mua and self._mua:
-            self._mua = preprocess.zscore_trials(self._mua)
+            self._mua = self._mua.fmap(preprocess.zscore_trials)
 
-        self._shape = None
+        self._num_trials = None
         for thing in (lfp, mua, spikes):
             if thing is not None:
-                assert len(thing.shape) == 3 # Channels x Times x Trials
-                if self._shape:
-                    assert thing.shape == self._shape
+                assert len(thing.data.shape) == 3 # Channels x Times x Trials
+                if self._num_trials:
+                    assert thing.shape[-1] == self._num_trials
                 else:
-                    self._shape = thing.shape
-
-    @property
-    def num_channels(self):
-        return self._shape[0]
-
-    @property
-    def num_times(self):
-        return self._shape[1]
+                    self._num_trials = thing.shape[-1]
 
     @property
     def num_trials(self):
         return self._shape[2]
-
-    @property
-    def dt(self):
-        return self._dt
-
-    @property
-    def f0(self):
-        return 1. / self.dt
-
-    @property
-    def fNQ(self):
-        return self.f0 / 2.
-
-    @property
-    def T(self):
-        return self.dt * self._ntimes
 
     @property
     def events(self):
@@ -99,12 +80,6 @@ class ConditionTrials:
         event_keys = list(self.events.keys())
         successor = event_keys[event_keys.index(event) + 1]
         return self.events[event], self.events[successor]
-
-    def sample_at(self, t):
-        return np.nanargmin((self._sample_times - t) ** 2)
-
-    def time_to_samples(self, t):
-        return math.ceil(t * self.f0)
 
     def time_lock(self, event, duration=True, before=0., after=0.):
         onsets, offsets = self._event_bounds(event)
