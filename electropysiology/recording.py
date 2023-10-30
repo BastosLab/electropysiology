@@ -31,6 +31,10 @@ class Signal(collections.abc.Sequence):
         return self._dt
 
     @property
+    def erp(self):
+        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
+
+    @property
     def f0(self):
         return 1. / self.dt
 
@@ -57,6 +61,9 @@ class Signal(collections.abc.Sequence):
     @property
     def num_trials(self):
         return self.data.shape[2]
+
+    def plot(self):
+        plt.plot(self.times, self.data.T.squeeze())
 
     def sample_at(self, t):
         return np.nanargmin((self._sampling_times - t) ** 2)
