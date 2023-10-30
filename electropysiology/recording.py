@@ -31,10 +31,6 @@ class Signal(collections.abc.Sequence):
         return self._dt
 
     @property
-    def erp(self):
-        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
-
-    @property
     def f0(self):
         return 1. / self.dt
 
@@ -62,9 +58,6 @@ class Signal(collections.abc.Sequence):
     @property
     def num_trials(self):
         return self.data.shape[2]
-
-    def plot(self, **kwargs):
-        plt.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def sample_at(self, t):
         return np.nanargmin((self._sampling_times - t) ** 2)
@@ -99,6 +92,14 @@ class Signal(collections.abc.Sequence):
                     key.step)
         return self.__class__(self.channel_info, self.data[:, key, :], self.dt,
                               times)
+
+class LocalFieldPotential(Signal):
+    @property
+    def erp(self):
+        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
+
+    def plot(self, **kwargs):
+        plt.plot(self.times, self.data.T.squeeze(), **kwargs)
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
