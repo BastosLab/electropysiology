@@ -61,6 +61,11 @@ class Signal(collections.abc.Sequence):
     def sample_at(self, t):
         return np.nanargmin((self._sampling_times - t) ** 2)
 
+    def select_channels(self, k, v):
+        groups = self.channel_info.groupby(k).groups
+        rows = self.channel_info.take(groups[v])
+        return Signal(rows, self.data[groups[v], :, :], self.dt, self.times)
+
     @property
     def T(self):
         return self.dt * len(self)
