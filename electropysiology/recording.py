@@ -182,10 +182,3 @@ class TimeLockedSeries:
     @property
     def spikes(self):
         return self._spikes
-
-    @property
-    def erp(self):
-        return self.lfp.data.mean(-1)
-
-    def plot_erp(self):
-        plt.plot(self.lfp.times, self.erp.T)
