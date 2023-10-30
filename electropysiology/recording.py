@@ -9,13 +9,18 @@ import matplotlib.pyplot as plt
 from . import preprocess
 
 class Signal(collections.abc.Sequence):
-    def __init__(self, data, dt, sampling_times):
+    def __init__(self, channels, data, dt, sampling_times):
         assert len(data.shape) == 3
         assert len(sampling_times) == data.shape[1]
 
+        self._channels = channels
         self._data = data
         self._dt = dt
         self._sampling_times = sampling_times
+
+    @property
+    def channel_info(self):
+        return self._channels
 
     @property
     def data(self):
@@ -26,11 +31,15 @@ class Signal(collections.abc.Sequence):
         return self._dt
 
     @property
+    def erp(self):
+        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
+
+    @property
     def f0(self):
         return 1. / self.dt
 
     def fmap(self, f):
-        return Signal(f(self.data), self.dt, self.sampling_times)
+        return Signal(self.channel_info, f(self.data), self.dt, self.times)
 
     @property
     def fNQ(self):
@@ -53,8 +62,16 @@ class Signal(collections.abc.Sequence):
     def num_trials(self):
         return self.data.shape[2]
 
+    def plot(self, **kwargs):
+        plt.plot(self.times, self.data.T.squeeze(), **kwargs)
+
     def sample_at(self, t):
         return np.nanargmin((self._sampling_times - t) ** 2)
+
+    def select_channels(self, k, v):
+        groups = self.channel_info.groupby(k).groups
+        rows = self.channel_info.take(groups[v])
+        return Signal(rows, self.data[groups[v], :, :], self.dt, self.times)
 
     @property
     def T(self):
@@ -78,7 +95,7 @@ class Signal(collections.abc.Sequence):
 
         key = slice(self.sample_at(key.start), self.sample_at(key.stop),
                     key.step)
-        return Signal(self.data[:, key, :], self.dt, times)
+        return Signal(self.channel_info, self.data[:, key, :], self.dt, times)
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
@@ -165,10 +182,3 @@ class TimeLockedSeries:
     @property
     def spikes(self):
         return self._spikes
-
-    @property
-    def erp(self):
-        return self.lfp.data.mean(-1)
-
-    def plot_erp(self):
-        plt.plot(self.lfp.times, self.erp.T)
