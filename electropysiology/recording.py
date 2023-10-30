@@ -62,8 +62,8 @@ class Signal(collections.abc.Sequence):
     def num_trials(self):
         return self.data.shape[2]
 
-    def plot(self):
-        plt.plot(self.times, self.data.T.squeeze())
+    def plot(self, **kwargs):
+        plt.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def sample_at(self, t):
         return np.nanargmin((self._sampling_times - t) ** 2)
