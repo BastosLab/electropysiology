@@ -5,6 +5,7 @@ import math
 import numbers
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.fft as fft
 
 from . import preprocess
 
@@ -118,6 +119,25 @@ class LocalFieldPotential(Signal):
         channel_csds = np.stack(channel_csds, axis=0)
         return self.__class__(self.channel_info[2:-2], channel_csds, self.dt,
                               self.times)
+
+    def power_spectrum(self, dBs=True, relative=False, taper=None):
+        xs = self.data
+        if taper is not None:
+            xs = taper(xs.shape[1])[np.newaxis, :, np.newaxis] * xs
+        xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
+        psd = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
+        psd = psd[:, 0:xs.shape[1] // 2].real
+        if relative:
+            max_pow = psd.max(axis=0, keepdims=True)
+            psd = psd / max_pow
+        if dBs:
+            psd = 10 * np.log10(psd)
+        psd = psd.mean(-1)
+
+        freqs = np.arange(0, self.fNQ, self.df)[np.newaxis, :]
+        freqs = np.broadcast_to(freqs, (psd.shape[0], freqs.shape[1]))
+
+        return freqs, psd
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
