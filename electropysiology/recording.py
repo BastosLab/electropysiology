@@ -27,6 +27,10 @@ class Signal(collections.abc.Sequence):
         return self._data
 
     @property
+    def df(self):
+        return 1. / self.T
+
+    @property
     def dt(self):
         return self._dt
 
