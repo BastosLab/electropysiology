@@ -102,6 +102,15 @@ class LocalFieldPotential(Signal):
     def plot(self, **kwargs):
         plt.plot(self.times, self.data.T.squeeze(), **kwargs)
 
+    def csd(self, sigma, s):
+        channel_csds = []
+        for i in range(2, self.num_channels - 2):
+            vi = (self.data[i-2] - 2 * self.data[i] + self.data[i+1])
+            channel_csds.append(-sigma * vi / (2 * s ** 2))
+        channel_csds = np.stack(channel_csds, axis=0)
+        return self.__class__(self.channel_info[2:-2], channel_csds, self.dt,
+                              self.times)
+
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
                  zscore_mua=True):
