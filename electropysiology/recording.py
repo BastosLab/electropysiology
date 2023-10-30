@@ -72,6 +72,10 @@ class Signal(collections.abc.Sequence):
         return self.__class__(self.channel_info.take(rows),
                               self.data[rows, :, :], self.dt, self.times)
 
+    def sort_channels(self, key):
+        indices = self.channel_info.sort_values(key, ascending=False).index
+        return [self.channel_info.index.get_loc(i) for i in indices]
+
     @property
     def T(self):
         return self.dt * len(self)
