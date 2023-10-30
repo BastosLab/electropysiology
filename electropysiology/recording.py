@@ -64,9 +64,9 @@ class Signal(collections.abc.Sequence):
 
     def select_channels(self, k, v):
         groups = self.channel_info.groupby(k).groups
-        rows = self.channel_info.take(groups[v])
-        return self.__class__(rows, self.data[groups[v], :, :], self.dt,
-                              self.times)
+        rows = [self.channel_info.index.get_loc(c) for c in groups[v]]
+        return self.__class__(self.channel_info.take(rows),
+                              self.data[rows, :, :], self.dt, self.times)
 
     @property
     def T(self):
@@ -87,9 +87,10 @@ class Signal(collections.abc.Sequence):
 
         duration = key.stop - key.start
         times = np.linspace(key.start, key.stop, self.time_to_samples(duration))
-
         key = slice(self.sample_at(key.start), self.sample_at(key.stop),
                     key.step)
+        if len(times) > key.stop - key.start:
+            times = times[:key.stop - key.start]
         return self.__class__(self.channel_info, self.data[:, key, :], self.dt,
                               times)
 
