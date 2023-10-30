@@ -9,13 +9,18 @@ import matplotlib.pyplot as plt
 from . import preprocess
 
 class Signal(collections.abc.Sequence):
-    def __init__(self, data, dt, sampling_times):
+    def __init__(self, channels, data, dt, sampling_times):
         assert len(data.shape) == 3
         assert len(sampling_times) == data.shape[1]
 
+        self._channels = channels
         self._data = data
         self._dt = dt
         self._sampling_times = sampling_times
+
+    @property
+    def channel_info(self):
+        return self._channels
 
     @property
     def data(self):
@@ -30,7 +35,7 @@ class Signal(collections.abc.Sequence):
         return 1. / self.dt
 
     def fmap(self, f):
-        return Signal(f(self.data), self.dt, self.sampling_times)
+        return Signal(self.channel_info, f(self.data), self.dt, self.times)
 
     @property
     def fNQ(self):
@@ -78,7 +83,7 @@ class Signal(collections.abc.Sequence):
 
         key = slice(self.sample_at(key.start), self.sample_at(key.stop),
                     key.step)
-        return Signal(self.data[:, key, :], self.dt, times)
+        return Signal(self.channel_info, self.data[:, key, :], self.dt, times)
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
