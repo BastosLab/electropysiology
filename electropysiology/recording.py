@@ -5,6 +5,7 @@ import math
 import numbers
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.fft as fft
 
 from . import preprocess
 
@@ -25,6 +26,10 @@ class Signal(collections.abc.Sequence):
     @property
     def data(self):
         return self._data
+
+    @property
+    def df(self):
+        return 1. / self.T
 
     @property
     def dt(self):
@@ -68,6 +73,10 @@ class Signal(collections.abc.Sequence):
         return self.__class__(self.channel_info.take(rows),
                               self.data[rows, :, :], self.dt, self.times)
 
+    def sort_channels(self, key):
+        indices = self.channel_info.sort_values(key, ascending=False).index
+        return [self.channel_info.index.get_loc(i) for i in indices]
+
     @property
     def T(self):
         return self.dt * len(self)
@@ -110,6 +119,25 @@ class LocalFieldPotential(Signal):
         channel_csds = np.stack(channel_csds, axis=0)
         return self.__class__(self.channel_info[2:-2], channel_csds, self.dt,
                               self.times)
+
+    def power_spectrum(self, dBs=True, relative=False, taper=None):
+        xs = self.data
+        if taper is not None:
+            xs = taper(xs.shape[1])[np.newaxis, :, np.newaxis] * xs
+        xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
+        psd = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
+        psd = psd[:, 0:xs.shape[1] // 2].real
+        if relative:
+            max_pow = psd.max(axis=0, keepdims=True)
+            psd = psd / max_pow
+        if dBs:
+            psd = 10 * np.log10(psd)
+        psd = psd.mean(-1)
+
+        freqs = np.arange(0, self.fNQ, self.df)[np.newaxis, :]
+        freqs = np.broadcast_to(freqs, (psd.shape[0], freqs.shape[1]))
+
+        return freqs, psd
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
