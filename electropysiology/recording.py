@@ -157,19 +157,16 @@ class LocalFieldPotential(Signal):
         if taper is not None:
             xs = taper(xs.shape[1])[np.newaxis, :, np.newaxis] * xs
         xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
-        psd = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
-        psd = psd[:, 0:xs.shape[1] // 2].real
+        pows = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
+        pows = pows[:, 0:xs.shape[1] // 2].real
         if relative:
-            max_pow = psd.max(axis=0, keepdims=True)
-            psd = psd / max_pow
+            max_pow = pows.max(axis=0, keepdims=True)
+            pows = pows / max_pow
         if dBs:
-            psd = 10 * np.log10(psd)
-        psd = psd.mean(-1)
+            pows = 10 * np.log10(pows)
+        pows = pows.mean(-1)
 
-        freqs = np.arange(0, self.fNQ, self.df)[np.newaxis, :]
-        freqs = np.broadcast_to(freqs, (psd.shape[0], freqs.shape[1]))
-
-        return freqs, psd
+        return Spectrum(self.df, pows)
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
