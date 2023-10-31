@@ -169,14 +169,13 @@ class LocalFieldPotential(Signal):
         xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
         pows = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
         pows = pows[:, 0:xs.shape[1] // 2].real
-        if relative:
-            max_pow = pows.max(axis=0, keepdims=True)
-            pows = pows / max_pow
-        if dBs:
-            pows = 10 * np.log10(pows)
-        pows = pows.mean(-1)
 
-        return Spectrum(self.df, pows)
+        spectrum = Spectrum(self.df, pows)
+        if relative:
+            spectrum = spectrum.relative()
+        if dBs:
+            spectrum = spectrum.decibels()
+        return spectrum.trial_mean()
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
