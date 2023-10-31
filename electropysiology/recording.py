@@ -131,9 +131,19 @@ class Spectrum:
                     robust=True)
         ax.set_xlim(left=fbottom, right=ftop)
 
+    def decibels(self):
+        return Spectrum(self.df, 10 * np.log10(self.pows))
+
     @property
     def pows(self):
         return self._pows
+
+    def relative(self):
+        max_pow = self.pows.max(axis=0, keepdims=True)
+        return Spectrum(self.df, self.pows / max_pow)
+
+    def trial_mean(self, axis=-1):
+        return Spectrum(self.df, self.pows.mean(axis=axis))
 
 class LocalFieldPotential(Signal):
     @property
