@@ -110,6 +110,11 @@ class Spectrum:
         self._freqs = np.arange(0, pows.shape[1] / df, self.df)[np.newaxis, :]
         self._pows = pows
 
+    def band_power(self, fbottom, ftop):
+        ibot = np.nanargmin((self.freqs - fbottom) ** 2)
+        itop = np.nanargmin((self.freqs - ftop) ** 2)
+        return self.pows[:, ibot:itop+1].mean(axis=-1)
+
     def closest_freq(self, f):
         return np.nanargmin((self.freqs - f) ** 2)
 
@@ -131,9 +136,29 @@ class Spectrum:
                     robust=True)
         ax.set_xlim(left=fbottom, right=ftop)
 
+    def decibels(self):
+        return Spectrum(self.df, 10 * np.log10(self.pows))
+
+    def plot_channels(self, stat, ax=None, xlims=None):
+        if ax is None:
+            ax = plt.gca()
+
+        channels = np.arange(0, self.pows.shape[0])
+        ax.plot(stat, channels)
+        if xlims is not None:
+            ax.set_xlim(*xlims)
+        ax.invert_yaxis()
+
     @property
     def pows(self):
         return self._pows
+
+    def relative(self):
+        max_pow = self.pows.max(axis=0, keepdims=True)
+        return Spectrum(self.df, self.pows / max_pow)
+
+    def trial_mean(self, axis=-1):
+        return Spectrum(self.df, self.pows.mean(axis=axis))
 
 class LocalFieldPotential(Signal):
     @property
@@ -159,14 +184,13 @@ class LocalFieldPotential(Signal):
         xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
         pows = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
         pows = pows[:, 0:xs.shape[1] // 2].real
-        if relative:
-            max_pow = pows.max(axis=0, keepdims=True)
-            pows = pows / max_pow
-        if dBs:
-            pows = 10 * np.log10(pows)
-        pows = pows.mean(-1)
 
-        return Spectrum(self.df, pows)
+        spectrum = Spectrum(self.df, pows)
+        if relative:
+            spectrum = spectrum.relative()
+        if dBs:
+            spectrum = spectrum.decibels()
+        return spectrum.trial_mean()
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
