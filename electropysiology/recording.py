@@ -110,6 +110,11 @@ class Spectrum:
         self._freqs = np.arange(0, pows.shape[1] / df, self.df)[np.newaxis, :]
         self._pows = pows
 
+    def band_power(self, fbottom, ftop):
+        ibot = np.nanargmin((self.freqs - fbottom) ** 2)
+        itop = np.nanargmin((self.freqs - ftop) ** 2)
+        return self.pows[:, ibot:itop+1].mean(axis=-1)
+
     def closest_freq(self, f):
         return np.nanargmin((self.freqs - f) ** 2)
 
