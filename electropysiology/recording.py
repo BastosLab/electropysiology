@@ -6,6 +6,7 @@ import numbers
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.fft as fft
+import seaborn as sns
 
 from . import preprocess
 
@@ -103,6 +104,37 @@ class Signal(collections.abc.Sequence):
         return self.__class__(self.channel_info, self.data[:, key, :], self.dt,
                               times)
 
+class Spectrum:
+    def __init__(self, df, pows):
+        self._df = df
+        self._freqs = np.arange(0, pows.shape[1] / df, self.df)[np.newaxis, :]
+        self._pows = pows
+
+    def closest_freq(self, f):
+        return np.nanargmin((self.freqs - f) ** 2)
+
+    @property
+    def df(self):
+        return self._df
+
+    @property
+    def freqs(self):
+        return self._freqs
+
+    def heatmap(self, fbottom=0, ftop=None, ax=None):
+        if ax is None:
+            ax = plt.gca()
+        if ftop is None:
+            ftop = self.freqs[-1]
+
+        sns.heatmap(self.pows, ax=ax, linewidth=0, cmap='viridis', cbar=False,
+                    robust=True)
+        ax.set_xlim(left=fbottom, right=ftop)
+
+    @property
+    def pows(self):
+        return self._pows
+
 class LocalFieldPotential(Signal):
     @property
     def erp(self):
@@ -125,19 +157,16 @@ class LocalFieldPotential(Signal):
         if taper is not None:
             xs = taper(xs.shape[1])[np.newaxis, :, np.newaxis] * xs
         xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
-        psd = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
-        psd = psd[:, 0:xs.shape[1] // 2].real
+        pows = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
+        pows = pows[:, 0:xs.shape[1] // 2].real
         if relative:
-            max_pow = psd.max(axis=0, keepdims=True)
-            psd = psd / max_pow
+            max_pow = pows.max(axis=0, keepdims=True)
+            pows = pows / max_pow
         if dBs:
-            psd = 10 * np.log10(psd)
-        psd = psd.mean(-1)
+            pows = 10 * np.log10(pows)
+        pows = pows.mean(-1)
 
-        freqs = np.arange(0, self.fNQ, self.df)[np.newaxis, :]
-        freqs = np.broadcast_to(freqs, (psd.shape[0], freqs.shape[1]))
-
-        return freqs, psd
+        return Spectrum(self.df, pows)
 
 class ConditionTrials:
     def __init__(self, events, lfp=None, mua=None, spikes=None,
