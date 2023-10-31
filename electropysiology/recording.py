@@ -6,6 +6,7 @@ import numbers
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.fft as fft
+import seaborn as sns
 
 from . import preprocess
 
@@ -102,6 +103,37 @@ class Signal(collections.abc.Sequence):
             times = times[:key.stop - key.start]
         return self.__class__(self.channel_info, self.data[:, key, :], self.dt,
                               times)
+
+class Spectrum:
+    def __init__(self, df, pows):
+        self._df = df
+        self._freqs = np.arange(0, pows.shape[1] / df, self.df)[np.newaxis, :]
+        self._pows = pows
+
+    def closest_freq(self, f):
+        return np.nanargmin((self.freqs - f) ** 2)
+
+    @property
+    def df(self):
+        return self._df
+
+    @property
+    def freqs(self):
+        return self._freqs
+
+    def heatmap(self, fbottom=0, ftop=None, ax=None):
+        if ax is None:
+            ax = plt.gca()
+        if ftop is None:
+            ftop = self.freqs[-1]
+
+        sns.heatmap(self.pows, ax=ax, linewidth=0, cmap='viridis', cbar=False,
+                    robust=True)
+        ax.set_xlim(left=fbottom, right=ftop)
+
+    @property
+    def pows(self):
+        return self._pows
 
 class LocalFieldPotential(Signal):
     @property
