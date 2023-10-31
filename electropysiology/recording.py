@@ -139,6 +139,16 @@ class Spectrum:
     def decibels(self):
         return Spectrum(self.df, 10 * np.log10(self.pows))
 
+    def plot_channels(self, stat, ax=None, xlims=None):
+        if ax is None:
+            ax = plt.gca()
+
+        channels = np.arange(0, self.pows.shape[0])
+        ax.plot(stat, channels)
+        if xlims is not None:
+            ax.set_xlim(*xlims)
+        ax.invert_yaxis()
+
     @property
     def pows(self):
         return self._pows
