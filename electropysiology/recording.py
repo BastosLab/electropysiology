@@ -48,6 +48,17 @@ class Signal(collections.abc.Sequence):
     def fNQ(self):
         return self.f0 / 2.
 
+    def heatmap(self, ax=None, xlims=None, ylims=None):
+        if ax is None:
+            ax = plt.gca()
+
+        sns.heatmap(self.data.squeeze(), ax=ax, linewidth=0, cmap='viridis',
+                    cbar=False, robust=True)
+        if xlims is not None:
+            ax.set_xlim(*xlims)
+        if ylims is not None:
+            ax.set_ylim(*ylims)
+
     def mask_trial(self, tr, onset, offset):
         first, last = self.sample_at(onset), self.sample_at(offset)
         S = last - first
