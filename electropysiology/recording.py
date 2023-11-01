@@ -52,13 +52,13 @@ class Recording:
             for k, sig in signals.items():
                 sig.mask_trial(tr, onsets[tr], offsets[tr])
 
-        # TODO: store and fetch the analog signals that provide ground-truth for
-        # time indexing.
-
-        return TimeLockedSeries(**signals)
+        events = {k: v for k, v in self.events.items()
+                  if ((v >= first) & (v <= last)).all()}
+        return TimeLockedSeries(events, **signals)
 
 class TimeLockedSeries:
-    def __init__(self, **signals):
+    def __init__(self, events, **signals):
+        self._events = events
         self._signals = signals
         self._shape = None
         for signal in self.signals.values():
@@ -67,6 +67,10 @@ class TimeLockedSeries:
             else:
                 assert signal.data.shape == self.shape
         assert len(self.shape) == 3 # Channels x Times x Trials
+
+    @property
+    def events(self):
+        return self._events
 
     @property
     def shape(self):
