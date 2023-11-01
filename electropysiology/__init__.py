@@ -1,4 +1,3 @@
-from . import preprocess
-from . import recording
+from . import preprocess, recording, signal, signals, spectrum
 
-__all__ = ['preprocess', 'recording']
+__all__ = ['preprocess', 'recording', 'signal', 'signals', 'spectrum']
