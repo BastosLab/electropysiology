@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
+THETA_BAND = (1., 4.)
+ALPHA_BETA_BAND = (8., 30.)
+GAMMA_BAND = (50., 150.)
+
 class Spectrum:
     def __init__(self, df, pows):
         self._df = df
