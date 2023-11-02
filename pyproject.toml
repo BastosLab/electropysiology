@@ -22,5 +22,5 @@ classifiers = [
 "Homepage" = "https://github.com/BastosLab/oscillapy"
 "Bug Tracker" = "https://github.com/BastosLab/oscillapy/issues"
 
-[tool.setuptools]
-packages = ["oscillapy"]
+# [tool.setuptools]
+# packages = ["oscillapy"]
