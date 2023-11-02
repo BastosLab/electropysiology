@@ -32,6 +32,9 @@ class Signal(collections.abc.Sequence):
     def dt(self):
         return self._dt
 
+    def erp(self):
+        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
+
     @property
     def f0(self):
         return 1. / self.dt
