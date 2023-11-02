@@ -72,6 +72,29 @@ class TimeLockedSeries:
     def events(self):
         return self._events
 
+    def plot_trial(self, t=None):
+        fig, axes = plt.subplot_mosaic([[sig] for sig in self.signals],
+                                       layout='constrained', sharex=True)
+        for sig, ax in axes.items():
+            ax.set_title(sig)
+            if t is not None:
+                signal = self.signals[sig].select_trials([t])
+                signal.plot(ax=ax)
+            else:
+                signal = self.signals[sig].erp()
+                signal.plot(ax=ax)
+
+        for event in self.events:
+            if t is not None:
+                event_time = self.events[event][t]
+            else:
+                event_time = self.events[event].mean()
+            for ax in axes.values():
+                ymin, ymax = ax.get_ybound()
+                ax.vlines(event_time, ymin, ymax, colors='black',
+                          linestyles='dashed', label=event)
+                ax.annotate(event, (event_time + 0.005, ymax))
+
     @property
     def shape(self):
         return self._shape
