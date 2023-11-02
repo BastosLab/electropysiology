@@ -8,12 +8,10 @@ from .. import signal
 from ..spectrum import Spectrum
 
 class LocalFieldPotential(signal.Signal):
-    @property
-    def erp(self):
-        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
-
-    def plot(self, **kwargs):
-        plt.plot(self.times, self.data.T.squeeze(), **kwargs)
+    def plot(self, ax=None, **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def csd(self, sigma, s):
         channel_csds = []

@@ -6,27 +6,13 @@ import seaborn as sns
 
 from . import preprocess
 
-class ConditionTrials:
-    def __init__(self, events, lfp=None, mua=None, spikes=None,
-                 zscore_mua=True):
-        assert lfp is not None or mua is not None or spikes is not None
+class Recording:
+    def __init__(self, events, trials, **signals):
         self._events = events
-        self._lfp, self._mua, self._spikes = lfp, mua, spikes
-        if zscore_mua and self._mua is not None:
-            self._mua = self._mua.fmap(preprocess.zscore_trials)
-
-        self._num_trials = None
-        for thing in (lfp, mua, spikes):
-            if thing is not None:
-                assert len(thing.data.shape) == 3 # Channels x Times x Trials
-                if self._num_trials:
-                    assert thing.num_trials == self._num_trials
-                else:
-                    self._num_trials = thing.num_trials
-
-    @property
-    def num_trials(self):
-        return self._num_trials
+        self._signals = signals
+        self._trials = trials
+        for signal in self.signals:
+            assert self.signals[signal].data.shape[-1] == len(self.trials)
 
     @property
     def events(self):
@@ -37,6 +23,22 @@ class ConditionTrials:
         successor = event_keys[event_keys.index(event) + 1]
         return self.events[event], self.events[successor]
 
+    def select_trials(self, f, *columns):
+        trial_entries = (list(self.trials[col].values) for col in columns)
+        selections = np.array([f(*entry) for entry in zip(*trial_entries)])
+        trials = self.trials.loc[selections]
+        signals = {k: s.select_trials(selections)
+                   for k, s in self.signals.items()}
+        return Recording(self.events, trials, **signals)
+
+    @property
+    def signals(self):
+        return self._signals
+
+    @property
+    def trials(self):
+        return self._trials
+
     def time_lock(self, event, duration=True, before=0., after=0.):
         onsets, offsets = self._event_bounds(event)
         if not isinstance(duration, bool):
@@ -45,49 +47,58 @@ class ConditionTrials:
         offsets = offsets + after
         first, last = onsets.min(), offsets.max()
 
-        lfp, mua, spikes = None, None, None
-        if self._lfp is not None:
-            lfp = self._lfp[first:last]
-        if self._mua is not None:
-            mua = self._mua[first:last]
-        if self._spikes is not None:
-            spike = self._spikes[first:last]
+        signals = {k: s[first:last] for k, s in self.signals.items()}
+        for tr in range(len(self.trials)):
+            for k, sig in signals.items():
+                sig.mask_trial(tr, onsets[tr], offsets[tr])
 
-        for tr in range(self.num_trials):
-            if lfp is not None:
-                lfp.mask_trial(tr, onsets[tr], offsets[tr])
-            if mua is not None:
-                mua.mask_trial(tr, onsets[tr], offsets[tr])
-            if spikes is not None:
-                spikes.mask_trial(tr, onsets[tr], offsets[tr])
-
-        # TODO: store and fetch the analog signals that provide ground-truth for
-        # time indexing.
-
-        return TimeLockedSeries(lfp, mua, spikes)
+        events = {k: v for k, v in self.events.items()
+                  if ((v >= first) & (v <= last)).all()}
+        return TimeLockedSeries(events, **signals)
 
 class TimeLockedSeries:
-    def __init__(self, lfp=None, mua=None, spikes=None):
-        assert lfp is not None or mua is not None or spikes is not None
-
+    def __init__(self, events, **signals):
+        self._events = events
+        self._signals = signals
         self._shape = None
-        self._lfp, self._mua, self._spikes = lfp, mua, spikes
-        for thing in (lfp, mua, spikes):
-            if thing is not None:
-                assert len(thing.data.shape) == 3 # Channels x Times x Trials
-                if self._shape:
-                    assert thing.data.shape == self._shape
-                else:
-                    self._shape = thing.data.shape
+        for signal in self.signals.values():
+            if self._shape is None:
+                self._shape = signal.data.shape
+            else:
+                assert signal.data.shape == self.shape
+        assert len(self.shape) == 3 # Channels x Times x Trials
 
     @property
-    def lfp(self):
-        return self._lfp
+    def events(self):
+        return self._events
+
+    def plot_trial(self, t=None):
+        fig, axes = plt.subplot_mosaic([[sig] for sig in self.signals],
+                                       layout='constrained', sharex=True)
+        for sig, ax in axes.items():
+            ax.set_title(sig)
+            if t is not None:
+                signal = self.signals[sig].select_trials([t])
+                signal.plot(ax=ax)
+            else:
+                signal = self.signals[sig].erp()
+                signal.plot(ax=ax)
+
+        for event in self.events:
+            if t is not None:
+                event_time = self.events[event][t]
+            else:
+                event_time = self.events[event].mean()
+            for ax in axes.values():
+                ymin, ymax = ax.get_ybound()
+                ax.vlines(event_time, ymin, ymax, colors='black',
+                          linestyles='dashed', label=event)
+                ax.annotate(event, (event_time + 0.005, ymax))
 
     @property
-    def mua(self):
-        return self._mua
+    def shape(self):
+        return self._shape
 
     @property
-    def spikes(self):
-        return self._spikes
+    def signals(self):
+        return self._signals

@@ -32,6 +32,9 @@ class Signal(collections.abc.Sequence):
     def dt(self):
         return self._dt
 
+    def erp(self):
+        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
+
     @property
     def f0(self):
         return 1. / self.dt
@@ -80,6 +83,10 @@ class Signal(collections.abc.Sequence):
         rows = [self.channel_info.index.get_loc(c) for c in groups[v]]
         return self.__class__(self.channel_info.take(rows),
                               self.data[rows, :, :], self.dt, self.times)
+
+    def select_trials(self, trials):
+        return self.__class__(self.channel_info, self.data[:, :, trials],
+                              self.dt, self.times)
 
     def sort_channels(self, key):
         indices = self.channel_info.sort_values(key, ascending=False).index
