@@ -21,15 +21,17 @@ class Recording:
     def _event_bounds(self, event):
         event_keys = list(self.events.keys())
         successor = event_keys[event_keys.index(event) + 1]
-        return self.events[event], self.events[successor]
+        return self.events[event].values, self.events[successor].values
 
     def select_trials(self, f, *columns):
         trial_entries = (list(self.trials[col].values) for col in columns)
         selections = np.array([f(*entry) for entry in zip(*trial_entries)])
+
+        events = self.events.loc[selections]
         trials = self.trials.loc[selections]
         signals = {k: s.select_trials(selections)
                    for k, s in self.signals.items()}
-        return Recording(self.events, trials, **signals)
+        return Recording(events, trials, **signals)
 
     @property
     def signals(self):
