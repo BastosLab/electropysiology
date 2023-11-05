@@ -110,10 +110,7 @@ class Signal(collections.abc.Sequence):
             key = slice(key.start, key.stop, 1)
 
         duration = key.stop - key.start
-        times = np.linspace(key.start, key.stop, self.time_to_samples(duration))
         key = slice(self.sample_at(key.start), self.sample_at(key.stop),
                     key.step)
-        if len(times) > key.stop - key.start:
-            times = times[:key.stop - key.start]
         return self.__class__(self.channel_info, self.data[:, key, :], self.dt,
-                              times)
+                              self.times[key])
