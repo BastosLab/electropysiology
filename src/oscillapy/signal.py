@@ -60,9 +60,9 @@ class Signal(collections.abc.Sequence):
 
     def mask_trial(self, tr, onset, offset):
         first, last = self.sample_at(onset), self.sample_at(offset)
-        S = last - first
         self._data[:, :first, tr] = np.zeros([self.num_channels, first])
-        self._data[:, S:, tr] = np.zeros([self.num_channels, len(self) - S])
+        self._data[:, last:, tr] = np.zeros([self.num_channels,
+                                             len(self) - last])
 
     @property
     def num_channels(self):
