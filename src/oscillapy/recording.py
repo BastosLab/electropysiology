@@ -50,9 +50,8 @@ class Recording:
         first, last = onsets.min(), offsets.max()
 
         signals = {k: s[first:last] for k, s in self.signals.items()}
-        for tr in range(len(self.trials)):
-            for k, sig in signals.items():
-                sig.mask_trial(tr, onsets[tr], offsets[tr])
+        for sig in signals.values():
+            sig.mask_events(onsets, offsets)
 
         events = {k: v for k, v in self.events.items()
                   if ((v >= first) & (v <= last)).all()}

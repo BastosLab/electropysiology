@@ -58,11 +58,15 @@ class Signal(collections.abc.Sequence):
         if ylims is not None:
             ax.set_ylim(*ylims)
 
-    def mask_trial(self, tr, onset, offset):
-        first, last = self.sample_at(onset), self.sample_at(offset)
-        S = last - first
-        self._data[:, :first, tr] = np.zeros([self.num_channels, first])
-        self._data[:, S:, tr] = np.zeros([self.num_channels, len(self) - S])
+    def mask_events(self, onsets, offsets):
+        assert len(onsets) == len(offsets)
+
+        self._data = np.nan_to_num(self._data, copy=False)
+        for trial in range(len(onsets)):
+            first = self.sample_at(onsets[trial])
+            last = self.sample_at(offsets[trial])
+            self._data[:, :first, trial] *= 0
+            self._data[:, last:, trial] *= 0
 
     @property
     def num_channels(self):
@@ -110,10 +114,7 @@ class Signal(collections.abc.Sequence):
             key = slice(key.start, key.stop, 1)
 
         duration = key.stop - key.start
-        times = np.linspace(key.start, key.stop, self.time_to_samples(duration))
         key = slice(self.sample_at(key.start), self.sample_at(key.stop),
                     key.step)
-        if len(times) > key.stop - key.start:
-            times = times[:key.stop - key.start]
         return self.__class__(self.channel_info, self.data[:, key, :], self.dt,
-                              times)
+                              self.times[key])
