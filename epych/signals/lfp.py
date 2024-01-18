@@ -35,4 +35,8 @@ class LocalFieldPotential(signal.Signal):
             spectrum = spectrum.relative()
         if dBs:
             spectrum = spectrum.decibels()
-        return spectrum.trial_mean()
+        return spectrum
+
+class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
+    def power_spectrum(self, dBs=True, relative=False, taper=None):
+        return super().power_spectrum(dBs, relative, taper).trial_mean()
