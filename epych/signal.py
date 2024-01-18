@@ -7,14 +7,14 @@ import numpy as np
 import seaborn as sns
 
 class Signal(collections.abc.Sequence):
-    def __init__(self, channels, data, dt, sampling_times):
-        assert len(data.shape) == 3
-        assert len(sampling_times) == data.shape[1]
+    def __init__(self, channels, data, dt, timestamps):
+        assert len(data.shape) >= 2
+        assert len(timestamps) == data.shape[1]
 
         self._channels = channels
         self._data = data
         self._dt = dt
-        self._sampling_times = sampling_times
+        self._timestamps = timestamps
 
     @property
     def channel_info(self):
@@ -73,14 +73,14 @@ class Signal(collections.abc.Sequence):
         return self.data.shape[0]
 
     def __len__(self):
-        return len(self._sampling_times)
+        return len(self._timestamps)
 
     @property
     def num_trials(self):
         return self.data.shape[2]
 
     def sample_at(self, t):
-        return np.nanargmin((self._sampling_times - t) ** 2)
+        return np.nanargmin((self._timestamps - t) ** 2)
 
     def select_channels(self, k, v):
         groups = self.channel_info.groupby(k).groups
@@ -102,7 +102,7 @@ class Signal(collections.abc.Sequence):
 
     @property
     def times(self):
-        return self._sampling_times
+        return self._timestamps
 
     def time_to_samples(self, t):
         return math.ceil(t * self.f0)
