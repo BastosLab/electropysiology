@@ -2,17 +2,49 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import quantities as pq
 import seaborn as sns
 
-from . import preprocess
+from . import preprocess, signal
 
-class Recording:
-    def __init__(self, events, trials, **signals):
-        self._events = events
+def epochs_from_records(intervals):
+    return pd.DataFrame.from_records(intervals,
+                                     columns=["type", "start", "end"])
+
+def events_from_records(events):
+    return pd.DataFrame.from_records(events, index="name",
+                                     columns=["name", "time"])
+
+class ContinuousRecording:
+    def __init__(self, intervals, events, **signals):
+        self._epochs = epochs_from_records(intervals)
+        for (name, start, end) in self._epochs.iterttuples(False, None):
+            events.append((name, start))
+            events.append((name, end))
+        self._events = events_from_records(events)
         self._signals = signals
-        self._trials = trials
-        for signal in self.signals:
-            assert self.signals[signal].data.shape[-1] == len(self.trials)
+
+    @property
+    def epochs(self):
+        return self._epochs
+
+    @property
+    def events(self):
+        return self._events
+
+    def epoch(self, epoch_type, before=0., after=0.):
+        epochs = self.epochs[self.epochs["type"] == epoch_type]
+        onsets, offsets = epochs["start"], epochs["end"]
+        onsets, offsets = onsets - before, offsets + after
+        first, last = onsets.min(), offsets.max()
+        signals = {k: s[first:last] for k, s in self.signals.items()}
+        for sig in signals.values():
+            sig.mask_epochs(onsets, offsets)
+
+        events = {k: v for k, v in self.events.items()
+                  if ((v >= first) & (v <= last)).all()}
+        return EpochedSeries(events, **signals)
 
     @property
     def events(self):
