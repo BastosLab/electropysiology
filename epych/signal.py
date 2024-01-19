@@ -109,28 +109,18 @@ class Signal(collections.abc.Sequence):
         return self.__class__(self.channels, self.data[:, key], self.dt,
                               self.times[key])
 
-class EpochedSignal(Signal):
+class ContinuousSignal(Signal):
     def __init__(self, channels, data, dt, timestamps):
-        assert len(data.shape) == 3
+        assert data.shape[2] == 1
         super().__init__(channels, data, dt, timestamps)
 
-    def erp(self):
-        return self.fmap(lambda xs: xs.mean(-1, keepdims=True))
+    def heatmap(self, ax=None, xlims=None, ylims=None):
+        if ax is None:
+            ax = plt.gca()
 
-    def mask_epochs(self, onsets, offsets):
-        assert len(onsets) == len(offsets)
-
-        self._data = np.nan_to_num(self._data, copy=False)
-        for trial in range(len(onsets)):
-            first = self.sample_at(onsets[trial])
-            last = self.sample_at(offsets[trial])
-            self._data[:, :first, trial] *= 0
-            self._data[:, last:, trial] *= 0
-
-    @property
-    def num_trials(self):
-        return self.data.shape[2]
-
-    def select_trials(self, trials):
-        return self.__class__(self.channel_info, self.data[:, :, trials],
-                              self.dt, self.times)
+        sns.heatmap(self.data.squeeze(), ax=ax, linewidth=0, cmap='viridis',
+                    cbar=False, robust=True)
+        if xlims is not None:
+            ax.set_xlim(*xlims)
+        if ylims is not None:
+            ax.set_ylim(*ylims)
