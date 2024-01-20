@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 
+import collections.abc as abc
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import quantities as pq
 import seaborn as sns
+import typing
 
 from . import preprocess, signal
 
@@ -15,6 +17,108 @@ def epochs_from_records(intervals):
 def events_from_records(events):
     return pd.DataFrame.from_records(events, index="name",
                                      columns=["name", "time"])
+
+class Trials:
+    def __init__(self, table: pd.DataFrame, units: dict[str, pq.UnitQuantity]):
+        self._table = table
+        for column in units:
+            assert column in self._table.columns
+        self._units = units
+
+    @property
+    def columns(self):
+        return self.table.columns
+
+    @property
+    def events(self):
+        for column in self.columns:
+            if self.is_event(column):
+                yield column
+
+    def filter(self, *args, **kwargs):
+        table = self._table.filter(*args, **kwargs)
+        units = {k: v for k, v in self._units.items() if k in table.columns}
+        return Trials(table, units)
+
+    def __getitem__(self, key):
+        return self.table.__getitem__(key)
+
+    def is_event(self, key: str) -> bool:
+        return isinstance(self.unit(key), pq.UnitTime)
+
+    def __iter__(self):
+        return self.table.__iter__()
+
+    def __len__(self):
+        return len(self.table)
+
+    def select(self, key):
+        table = self.table.loc[key]
+        return Trials(table, self._units)
+
+    @property
+    def table(self):
+        return self._table
+
+    def unit(self, col: str):
+        return self._units.get(col, None)
+
+    @property
+    def units(self):
+        return self._units
+
+class Sampling:
+    def __init__(self, trials: Trials, **signals):
+        for signal in signals.values():
+            assert signal.num_trials == len(trials)
+        self._signals = signals
+        self._trials = trials
+
+    def erp(self):
+        events = [(event, self.trials[event].mean()) for event in self.trials.events]
+        units = self.trials.units
+        signals = {k: v.erp() for k, v in self.signals.items()}
+        return Recording([], events, units, **signals)
+
+    def event_lock(self, event, before=0., after=0.):
+        assert self.trials.is_event(event)
+
+        event_times = self.trials[event]
+        onsets = (event_times - before).to_numpy()
+        offsets = (event_times + after).to_numpy()
+        first, last = onsets.min(), offsets.max()
+
+        signals = {k: s[first:last] for k, s in self.signals.items()}
+        for sig in signals.values():
+            sig.mask_epochs(onsets, offsets)
+
+        columns = []
+        for column in self.trials.columns:
+            if self.trials.is_event(column):
+                v = self.trials[column]
+                if ((v >= first) & (v <= last)).all():
+                    columns.append(column)
+            else:
+                columns.append(column)
+        trials = self.trials.filter(items=columns, axis="columns")
+        return Sampling(trials, **signals)
+
+    def select_trials(self, f, *columns):
+        trial_entries = (list(self.trials[col].values) for col in columns)
+        selections = np.array([f(*entry) for entry in zip(*trial_entries)])
+
+        trials = self.trials.select(selections)
+        signals = {k: s.select_trials(selections) for k, s
+                   in self.signals.items()}
+        return Sampling(trials, **signals)
+
+    @property
+    def signals(self):
+        return self._signals
+
+    @property
+    def trials(self):
+        return self._trials
 
 class ContinuousRecording:
     def __init__(self, intervals, events, **signals):
