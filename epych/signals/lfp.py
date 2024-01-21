@@ -14,7 +14,7 @@ class LocalFieldPotential(signal.Signal):
             vi = (self.data[i-2] - 2 * self.data[i] + self.data[i+1])
             channel_csds.append(-sigma * vi / (2 * s ** 2))
         channel_csds = np.stack(channel_csds, axis=0)
-        return self.__class__(self.channel_info[2:-2], channel_csds, self.dt,
+        return self.__class__(self.channels[2:-2], channel_csds, self.dt,
                               self.times)
 
     def power_spectrum(self, dBs=True, relative=False, taper=None):
