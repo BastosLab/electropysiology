@@ -8,19 +8,18 @@ from .. import signal
 from ..spectrum import Spectrum
 
 class LocalFieldPotential(signal.Signal):
-    def plot(self, ax=None, **kwargs):
-        if ax is None:
-            ax = plt.gca()
-        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
-
     def csd(self, sigma, s):
         channel_csds = []
         for i in range(2, self.num_channels - 2):
             vi = (self.data[i-2] - 2 * self.data[i] + self.data[i+1])
             channel_csds.append(-sigma * vi / (2 * s ** 2))
         channel_csds = np.stack(channel_csds, axis=0)
-        return self.__class__(self.channel_info[2:-2], channel_csds, self.dt,
+        return self.__class__(self.channels[2:-2], channel_csds, self.dt,
                               self.times)
+
+    def erp(self):
+        mean_data = self.data.mean(-1, keepdims=True)
+        return ContinuousLfp(self.channels, mean_data, self.dt, self.times)
 
     def power_spectrum(self, dBs=True, relative=False, taper=None):
         xs = self.data
@@ -37,6 +36,8 @@ class LocalFieldPotential(signal.Signal):
             spectrum = spectrum.decibels()
         return spectrum
 
-class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
-    def power_spectrum(self, dBs=True, relative=False, taper=None):
-        return super().power_spectrum(dBs, relative, taper).trial_mean()
+class ContinuousLfp(LocalFieldPotential, signal.ContinuousSignal):
+    def plot(self, ax=None, **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
