@@ -15,8 +15,7 @@ def epochs_from_records(intervals):
                                      columns=["type", "start", "end"])
 
 def events_from_records(events):
-    return pd.DataFrame.from_records(events, index="name",
-                                     columns=["name", "time"])
+    return pd.DataFrame.from_records(events, columns=["type", "time"])
 
 class Trials:
     def __init__(self, table: pd.DataFrame, units: dict[str, pq.UnitQuantity]):
@@ -120,14 +119,16 @@ class Sampling:
     def trials(self):
         return self._trials
 
-class ContinuousRecording:
-    def __init__(self, intervals, events, **signals):
+class Recording(Sampling):
+    def __init__(self, intervals, events, units, **signals):
         self._epochs = epochs_from_records(intervals)
-        for (name, start, end) in self._epochs.iterttuples(False, None):
-            events.append((name, start))
-            events.append((name, end))
         self._events = events_from_records(events)
-        self._signals = signals
+        uniques = ~self._events.duplicated("type", keep=False)
+        unique_events = self._events.loc[uniques]["type"].values
+        unique_event_times = self._events.loc[uniques]["time"].values
+        trials = Trials(pd.DataFrame(unique_event_times, columns=unique_events),
+                        units)
+        super().__init__(trials, **signals)
 
     @property
     def epochs(self):
@@ -146,9 +147,26 @@ class ContinuousRecording:
         for sig in signals.values():
             sig.mask_epochs(onsets, offsets)
 
-        events = {k: v for k, v in self.events.items()
-                  if ((v >= first) & (v <= last)).all()}
-        return EpochedSeries(events, **signals)
+        epoch_events = (self.events["time"] >= first) &\
+                       (self.events["time"] <= last)
+        epoch_events = self.events.loc[epoch_events]
+        epoch_events = pd.DataFrame(epoch_events["time"].values,
+                                    columns=list(epoch_events["type"].values))
+        return Sampling(epoch_events, self.units, **signals)
+
+    def plot(self):
+        fig, axes = plt.subplot_mosaic([[sig] for sig in self.signals],
+                                       layout='constrained', sharex=True)
+        for sig, ax in axes.items():
+            ax.set_title(sig)
+            self.signals[sig].plot(ax=ax)
+
+        for (event, time) in self.events.values:
+            for ax in axes.values():
+                ymin, ymax = ax.get_ybound()
+                ax.vlines(time, ymin, ymax, colors='black', linestyles='dashed',
+                          label=event)
+                ax.annotate(event, (time + 0.005, ymax))
 
 class EpochedSeries:
     def __init__(self, trial_info, units, **signals):
