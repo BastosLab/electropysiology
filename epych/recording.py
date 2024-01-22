@@ -72,7 +72,7 @@ class TrialInfo:
         return self._units
 
 class Sampling:
-    def __init__(self, trials: Trials, **signals):
+    def __init__(self, trials: TrialInfo, **signals):
         for signal in signals.values():
             assert signal.num_trials == len(trials)
         self._signals = signals
