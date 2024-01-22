@@ -17,11 +17,16 @@ def epochs_from_records(intervals):
 def events_from_records(events):
     return pd.DataFrame.from_records(events, columns=["type", "time"])
 
-class Trials:
+class TrialInfo:
     def __init__(self, table: pd.DataFrame, units: dict[str, pq.UnitQuantity]):
-        self._table = table
         for column in units:
-            assert column in self._table.columns
+            assert column in table.columns
+        if table.index.name is not None:
+            assert table.index.name == "trial"
+        elif "trial" in table.columns:
+            table = table.set_index("trial")
+
+        self._table = table
         self._units = units
 
     @property
@@ -37,7 +42,7 @@ class Trials:
     def filter(self, *args, **kwargs):
         table = self._table.filter(*args, **kwargs)
         units = {k: v for k, v in self._units.items() if k in table.columns}
-        return Trials(table, units)
+        return TrialInfo(table, units)
 
     def __getitem__(self, key):
         return self.table.__getitem__(key)
@@ -53,7 +58,7 @@ class Trials:
 
     def select(self, key):
         table = self.table.loc[key]
-        return Trials(table, self._units)
+        return TrialInfo(table, self._units)
 
     @property
     def table(self):
