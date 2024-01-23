@@ -74,7 +74,7 @@ class TrialInfo:
 class Sampling:
     def __init__(self, trials: TrialInfo, **signals):
         for signal in signals.values():
-            assert signal.num_trials == len(trials)
+            assert len(trials) in (0, signal.num_trials)
         self._signals = signals
         self._trials = trials
 
