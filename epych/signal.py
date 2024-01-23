@@ -116,6 +116,19 @@ class ContinuousSignal(Signal):
         assert data.shape[2] == 1
         super().__init__(channels, data, dt, timestamps)
 
+    def epoch(self, intervals, time_shift=0.):
+        assert intervals.shape[1] == 2 and intervals.shape[0] >= 1
+
+        trials_data = []
+        for trial, (start, end) in enumerate(intervals):
+            start, end = self.sample_at(start), self.sample_at(end)
+            trials_data.append(self._data[:, start:end, :])
+        trials_samples = min(data.shape[1] for data in trials_data)
+        trials_data = [data[:, :trials_samples] for data in trials_data]
+        trials_data = np.concatenate(trials_data, axis=-1)
+        timestamps = np.arange(0., trials_data.shape[1] * self.dt, self.dt)
+        return self.iid_signal(self.channels, trials_data, self.dt, timestamps)
+
     def heatmap(self, ax=None, xlims=None, ylims=None):
         if ax is None:
             ax = plt.gca()
