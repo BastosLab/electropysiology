@@ -85,11 +85,10 @@ class Sampling:
             times = self.trials[event].values * self.trials.unit(event)
             event_times.append(times.rescale(pq.second).mean())
         event_times = np.array(event_times) * pq.second
-        event_durations = np.array([0] * len(event_types)) * pq.second
         intervals = Intervals(pd.DataFrame(data={"type": event_types,
-                                                 "time": event_times,
-                                                 "duration": event_durations}),
-                              {"duration": pq.second, "time": pq.second})
+                                                 "start": event_times,
+                                                 "end": event_times}),
+                              {"end": pq.second, "start": pq.second})
         signals = {k: v.erp() for k, v in self.signals.items()}
         return Recording(intervals, **signals)
 
