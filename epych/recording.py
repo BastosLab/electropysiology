@@ -196,8 +196,8 @@ class Recording(Sampling):
         if "trial" in uniques.columns:
             unique_array = (uniques["trial"].values,) + unique_array
             index = "trial"
-        trials = TrialInfo(pd.DataFrame(unique_array, columns=unique_events,
-                                        index=index),
+        unique_data = {k: v for (k, v) in zip(unique_events, unique_array)}
+        trials = TrialInfo(pd.DataFrame(unique_data, index=index),
                                         {e: self._intervals.units["time"] for e
                                          in unique_events})
         super().__init__(trials, **signals)
