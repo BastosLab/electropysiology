@@ -110,6 +110,8 @@ class Signal(collections.abc.Sequence):
                               self.times[key])
 
 class ContinuousSignal(Signal):
+    iid_signal = Signal
+
     def __init__(self, channels, data, dt, timestamps):
         assert data.shape[2] == 1
         super().__init__(channels, data, dt, timestamps)
