@@ -137,9 +137,9 @@ class Intervals:
         for column in units:
             assert column in table.columns
         assert "type" in table.columns
-        assert "time" in table.columns and "duration" in table.columns
-        assert isinstance(units["time"], pq.UnitTime) and\
-               isinstance(units["duration"], pq.UnitTime)
+        assert "start" in table.columns and "end" in table.columns
+        assert isinstance(units["start"], pq.UnitTime) and\
+               isinstance(units["end"], pq.UnitTime)
         self._table = table
         self._units = units
 
@@ -162,11 +162,14 @@ class Intervals:
 
     def is_epoch(self, key: str) -> bool:
         rows = self.table.loc[self.table["type"] == key]
-        return all(rows["duration"] > 0.)
+        return all((rows["end"] - rows["start"]) > 0.)
 
     def is_event(self, key: str) -> bool:
         rows = self.table.loc[self.table["type"] == key]
-        return all(rows["duration"] == 0.)
+        return all((rows["end"] - rows["start"]) == 0.)
+
+    def query(self, key: str):
+        return self.table.loc[self.table["type"] == key]
 
     @property
     def table(self):
