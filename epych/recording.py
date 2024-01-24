@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from collections import Counter
 import collections.abc as abc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -127,20 +128,27 @@ class Recording(Sampling):
             yield (event, time)
 
     def epoch(self, epoch_type, before=0., after=0.):
-        epochs = self.epochs[self.epochs["type"] == epoch_type]
+        epochs = self.intervals.query(epoch_type)
         onsets, offsets = epochs["start"], epochs["end"]
         onsets, offsets = onsets - before, offsets + after
-        first, last = onsets.min(), offsets.max()
-        signals = {k: s[first:last] for k, s in self.signals.items()}
-        for sig in signals.values():
-            sig.mask_epochs(onsets, offsets)
 
-        epoch_events = (self.events["time"] >= first) &\
-                       (self.events["time"] <= last)
-        epoch_events = self.events.loc[epoch_events]
-        epoch_events = pd.DataFrame(epoch_events["time"].values,
-                                    columns=list(epoch_events["type"].values))
-        return Sampling(epoch_events, self.units, **signals)
+        epoch_intervals = np.stack((onsets.values, offsets.values), axis=-1)
+        trial_signals = {k: [] for k in self.signals}
+        internals = []
+        for t, (onset, offset) in enumerate(epoch_intervals):
+            inner = (self.intervals.table["start"] > onset) &\
+                    (self.intervals.table["end"] < offset)
+            inner = self.intervals.table.loc[inner]
+            inner = inner.assign(trial=[t] * len(inner))
+            inner.loc[:, "start":"end"] -= onset
+            internals.append(inner)
+            for k, s in self.signals.items():
+                trial_signals[k].append(s[onset:offset])
+        internals = pd.concat(internals)
+        signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
+        # Intervals(internals, self.intervals.units)
+        trial_info = TrialInfo(pd.DataFrame(), {})
+        return Sampling(trial_info, **signals)
 
     @property
     def intervals(self):
