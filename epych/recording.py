@@ -193,7 +193,7 @@ class Recording(Sampling):
         unique_types = [ty in intervals.events for ty in uniques["type"].values]
         uniques = uniques.loc[unique_types]
         unique_events = uniques["type"].values
-        unique_array = uniques["time"].values
+        unique_array = uniques["start"].values
         index = None
         if "trial" in uniques.columns:
             unique_array = (uniques["trial"].values,) + unique_array
@@ -202,7 +202,7 @@ class Recording(Sampling):
             index = uniques.index
         unique_data = {k: v for (k, v) in zip(unique_events, unique_array)}
         trials = TrialInfo(pd.DataFrame(unique_data, index=index),
-                                        {e: self._intervals.units["time"] for e
+                                        {e: self._intervals.units["start"] for e
                                          in unique_events})
         super().__init__(trials, **signals)
 
@@ -210,14 +210,15 @@ class Recording(Sampling):
     def epochs(self):
         for epoch in self.intervals.epochs:
             table = self.intervals.table
-            time = table.loc[table["type"] == epoch]["time"].item()
-            yield (epoch, time)
+            rows = table.loc[table["type"] == epoch]
+            start, end = rows["start"].item(), rows["end"].item()
+            yield (epoch, start, end)
 
     @property
     def events(self):
         for event in self.intervals.events:
             table = self.intervals.table
-            time = table.loc[table["type"] == event]["time"].item()
+            time = table.loc[table["type"] == event]["start"].item()
             yield (event, time)
 
     def epoch(self, epoch_type, before=0., after=0.):
