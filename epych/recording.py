@@ -17,60 +17,6 @@ def epochs_from_records(intervals):
 def events_from_records(events):
     return pd.DataFrame.from_records(events, columns=["type", "time"])
 
-class TrialInfo:
-    def __init__(self, table: pd.DataFrame, units: dict[str, pq.UnitQuantity]):
-        for column in units:
-            assert column in table.columns
-        if table.index.name is not None:
-            assert table.index.name == "trial"
-        elif "trial" in table.columns:
-            table = table.set_index("trial")
-
-        self._table = table
-        self._units = units
-
-    @property
-    def columns(self):
-        return self.table.columns
-
-    @property
-    def events(self):
-        for column in self.columns:
-            if self.is_event(column):
-                yield column
-
-    def filter(self, *args, **kwargs):
-        table = self._table.filter(*args, **kwargs)
-        units = {k: v for k, v in self._units.items() if k in table.columns}
-        return TrialInfo(table, units)
-
-    def __getitem__(self, key):
-        return self.table.__getitem__(key)
-
-    def is_event(self, key: str) -> bool:
-        return isinstance(self.unit(key), pq.UnitTime)
-
-    def __iter__(self):
-        return self.table.__iter__()
-
-    def __len__(self):
-        return len(self.table)
-
-    def select(self, key):
-        table = self.table.loc[key]
-        return TrialInfo(table, self._units)
-
-    @property
-    def table(self):
-        return self._table
-
-    def unit(self, col: str):
-        return self._units.get(col, None)
-
-    @property
-    def units(self):
-        return self._units
-
 class Sampling:
     def __init__(self, trials: TrialInfo, **signals):
         for signal in signals.values():
