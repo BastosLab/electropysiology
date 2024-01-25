@@ -87,56 +87,6 @@ class Sampling:
     def trials(self):
         return self._trials
 
-class Intervals:
-    def __init__(self, table: pd.DataFrame, units: dict[str, pq.UnitQuantity]):
-        for column in units:
-            assert column in table.columns
-        assert "type" in table.columns
-        assert "start" in table.columns and "end" in table.columns
-        assert isinstance(units["start"], pq.UnitTime) and\
-               isinstance(units["end"], pq.UnitTime)
-        self._table = table
-        self._units = units
-
-    @property
-    def epochs(self):
-        for ty in self.table["type"].unique():
-            if self.is_epoch(ty):
-                yield ty
-
-    @property
-    def events(self):
-        for ty in self.table["type"].unique():
-            if self.is_event(ty):
-                yield ty
-
-    def filter(self, *args, **kwargs):
-        table = self._table.filter(*args, **kwargs)
-        units = {k: v for k, v in self._units.items() if k in table.columns}
-        return Intervals(table, units)
-
-    def is_epoch(self, key: str) -> bool:
-        rows = self.table.loc[self.table["type"] == key]
-        return all((rows["end"] - rows["start"]) > 0.)
-
-    def is_event(self, key: str) -> bool:
-        rows = self.table.loc[self.table["type"] == key]
-        return all((rows["end"] - rows["start"]) == 0.)
-
-    def query(self, key: str):
-        return self.table.loc[self.table["type"] == key]
-
-    @property
-    def table(self):
-        return self._table
-
-    def uniques(self):
-        uniques = ~self.table.duplicated("type", keep=False)
-        return Intervals(self.table.loc[uniques], self.units)
-
-    def unit(self, col: str):
-        return self._units.get(col, None)
-
     @property
     def units(self):
         return self._units
