@@ -18,57 +18,66 @@ def events_from_records(events):
     return pd.DataFrame.from_records(events, columns=["type", "time"])
 
 class Sampling:
-    def __init__(self, trials: TrialInfo, **signals):
+    def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
+                 units: dict[str, pq.UnitQuantity], **signals):
+        for column in units:
+            assert column in intervals.columns or column in trials.columns
+        assert set(intervals.columns) >= {"type", "start", "end"}
+        assert trials.index.name == "trial"
         for signal in signals.values():
             assert len(trials) in (0, signal.num_trials)
+        assert isinstance(units["start"], pq.UnitTime) and\
+               isinstance(units["end"], pq.UnitTime)
+        self._intervals = intervals
         self._signals = signals
         self._trials = trials
+        self._units = units
 
     def erp(self):
-        event_types = list(self.trials.events)
-        event_times = []
-        for event in self.trials.events:
-            times = self.trials[event].values * self.trials.unit(event)
-            event_times.append(times.rescale(pq.second).mean())
-        event_times = np.array(event_times) * pq.second
-        intervals = Intervals(pd.DataFrame(data={"type": event_types,
-                                                 "start": event_times,
-                                                 "end": event_times}),
-                              {"end": pq.second, "start": pq.second})
+        intervals = []
+        for epoch_type in self.intervals["type"].unique():
+            epochs = self.intervals.loc[self.intervals["type"] == epoch_type]
+            epochs = epochs.mean(0, numeric_only=True)
+            epochs = pd.DataFrame(data=epochs.values[np.newaxis, :],
+                                  columns=epochs.index)
+            intervals.append(epochs.assign(type=[epoch_type]))
+        if intervals:
+            intervals = pd.concat(intervals)
+        else:
+            intervals = pd.DataFrame(columns=["trial", "type", "start", "end"])
+
+        trials = self.trials.mean(axis=0, numeric_only=True)
+        trials = pd.DataFrame(data=trials.values[np.newaxis, :],
+                              columns=trials.index.values)
+        trials = trials.assign(trial=[0]).set_index("trial")
+
         signals = {k: v.erp() for k, v in self.signals.items()}
-        return Recording(intervals, **signals)
+        return Recording(intervals, trials, self.units, **signals)
 
-    def event_lock(self, event, before=0., after=0.):
-        assert self.trials.is_event(event)
+    def time_lock(self, time, before=0., after=0.):
+        onset, offset = time - before, time + after
 
-        event_times = self.trials[event]
-        onsets = (event_times - before).to_numpy()
-        offsets = (event_times + after).to_numpy()
-        first, last = onsets.min(), offsets.max()
+        signals = {k: s[onset:offset] for k, s in self.signals.items()}
 
-        signals = {k: s[first:last] for k, s in self.signals.items()}
-        for sig in signals.values():
-            sig.mask_epochs(onsets, offsets)
+        inner_intervals = self.intervals["start"].values >= onset &\
+                          self.intervals["end"].values <= offset
+        inner_intervals = self.intervals.loc[inner_intervals]
+        if len(inner_intervals):
+            inner_intervals[:, "start":"end"] -= onset
+        return Sampling(inner_intervals, self.trials, self.units, **signals)
 
-        columns = []
-        for column in self.trials.columns:
-            if self.trials.is_event(column):
-                v = self.trials[column]
-                if ((v >= first) & (v <= last)).all():
-                    columns.append(column)
-            else:
-                columns.append(column)
-        trials = self.trials.filter(items=columns, axis="columns")
-        return Sampling(trials, **signals)
+    @property
+    def intervals(self):
+        return self._intervals
 
     def select_trials(self, f, *columns):
         trial_entries = (list(self.trials[col].values) for col in columns)
         selections = np.array([f(*entry) for entry in zip(*trial_entries)])
 
-        trials = self.trials.select(selections)
+        trials = self.trials.loc[selections]
         signals = {k: s.select_trials(selections) for k, s
                    in self.signals.items()}
-        return Sampling(trials, **signals)
+        return Sampling(self.intervals, trials, self.units, **signals)
 
     @property
     def signals(self):
