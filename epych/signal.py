@@ -16,6 +16,11 @@ class Signal(collections.abc.Sequence):
         self._dt = dt
         self._timestamps = timestamps
 
+    def baseline_correct(self, start, stop):
+        start, stop = self.sample_at(start), self.sample_at(stop) - 1
+        f = lambda data: data - data[:, start:stop].mean(axis=1, keepdims=True)
+        return self.fmap(f)
+
     @property
     def channels(self):
         return self._channels
@@ -32,9 +37,13 @@ class Signal(collections.abc.Sequence):
     def dt(self):
         return self._dt
 
-    def erp(self):
-        mean_data = self.data.mean(-1, keepdims=True)
-        return ContinuousSignal(self.channels, mean_data, self.dt, self.times)
+    def erp(self, baseline_time=None):
+        if baseline_time is not None:
+            data = self.baseline_correct(0, baseline_time).data
+        else:
+            data = self.data
+        return ContinuousSignal(self.channels, data.mean(-1, keepdims=True),
+                                self.dt, self.times)
 
     @property
     def f0(self):
