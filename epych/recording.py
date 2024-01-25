@@ -30,7 +30,7 @@ class Sampling:
         self._trials = trials
         self._units = units
 
-    def erp(self):
+    def erp(self, baseline_time=None):
         intervals = []
         for epoch_type in self.intervals["type"].unique():
             epochs = self.intervals.loc[self.intervals["type"] == epoch_type]
@@ -48,7 +48,7 @@ class Sampling:
                               columns=trials.index.values)
         trials = trials.assign(trial=[0]).set_index("trial")
 
-        signals = {k: v.erp() for k, v in self.signals.items()}
+        signals = {k: v.erp(baseline_time) for k, v in self.signals.items()}
         return Recording(intervals, trials, self.units, **signals)
 
     def time_lock(self, time, before=0., after=0.):
