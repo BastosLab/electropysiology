@@ -93,75 +93,55 @@ class Sampling:
         return self._units
 
 class Recording(Sampling):
-    def __init__(self, intervals: Intervals, **signals):
-        self._intervals = intervals
-        uniques = intervals.uniques().table
-        unique_types = [ty in intervals.events for ty in uniques["type"].values]
-        uniques = uniques.loc[unique_types]
-        unique_events = uniques["type"].values
-        unique_array = uniques["start"].values
-        index = None
-        if "trial" in uniques.columns:
-            unique_array = (uniques["trial"].values,) + unique_array
-            index = "trial"
-        else:
-            index = uniques.index
-        unique_data = {k: v for (k, v) in zip(unique_events, unique_array)}
-        trials = TrialInfo(pd.DataFrame(unique_data, index=index),
-                                        {e: self._intervals.units["start"] for e
-                                         in unique_events})
-        super().__init__(trials, **signals)
-
-    @property
-    def epochs(self):
-        for epoch in self.intervals.epochs:
-            table = self.intervals.table
-            rows = table.loc[table["type"] == epoch]
-            start, end = rows["start"].item(), rows["end"].item()
-            yield (epoch, start, end)
-
-    @property
-    def events(self):
-        for event in self.intervals.events:
-            table = self.intervals.table
-            time = table.loc[table["type"] == event]["start"].item()
-            yield (event, time)
+    def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
+                 units: dict[str, pq.UnitQuantity], **signals):
+        assert len(trials) <= 1
+        super().__init__(intervals, trials, units, **signals)
 
     def epoch(self, epoch_type, before=0., after=0.):
-        epochs = self.intervals.query(epoch_type)
+        epochs = self.intervals.loc[self.intervals["type"] == epoch_type]
         onsets, offsets = epochs["start"], epochs["end"]
         onsets, offsets = onsets - before, offsets + after
 
         epoch_intervals = np.stack((onsets.values, offsets.values), axis=-1)
-        trial_signals = {k: [] for k in self.signals}
-        internals = []
+        trials = []
         for t, (onset, offset) in enumerate(epoch_intervals):
-            inner = (self.intervals.table["start"] > onset) &\
-                    (self.intervals.table["end"] < offset)
-            inner = self.intervals.table.loc[inner]
-            inner = inner.assign(trial=[t] * len(inner))
-            inner.loc[:, "start":"end"] -= onset
-            internals.append(inner)
-            for k, s in self.signals.items():
-                trial_signals[k].append(s[onset:offset])
-        internals = pd.concat(internals)
+            inners = (self.intervals["start"] > onset) &\
+                    (self.intervals["end"] < offset)
+            inners = self.intervals.loc[inners]
+            inners = inners.assign(trial=[t] * len(inners))
+            inners.loc[:, "start":"end"] -= onset
+            for inner in inners.itertuples():
+                remainder = {
+                    k: v for k, v in inner._asdict().items() if k not in
+                    {"trial", "type", "start", "end", "Index"}
+                }
+                trials.append({
+                    "trial": t,
+                    inner.type + "_start": inner.start,
+                    inner.type + "_end": inner.end,
+                    **remainder
+                })
+        trial_columns = [set(trial.keys()) for trial in trials]
+        trial_columns = trial_columns[0].union(*trial_columns[1:])
+        trials = {
+            k: [trial[k] if (k in trial) else pd.NA for trial in trials]
+            for k in trial_columns
+        }
+        trials = pd.DataFrame(data=trials,
+                              columns=list(trial_columns)).set_index("trial")
         signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
-        # Intervals(internals, self.intervals.units)
-        trial_info = TrialInfo(pd.DataFrame(), {})
-        return Sampling(trial_info, **signals)
+        return Sampling(pd.DataFrame(columns=["type", "start", "end"]),
+                        trials, self.units, **signals)
 
-    @property
-    def intervals(self):
-        return self._intervals
-
-    def plot(self):
+    def plot(self, **events):
         fig, axes = plt.subplot_mosaic([[sig] for sig in self.signals],
                                        layout='constrained', sharex=True)
         for sig, ax in axes.items():
             ax.set_title(sig)
             self.signals[sig].plot(ax=ax)
 
-        for (event, time) in self.events:
+        for (event, time) in events.items():
             for ax in axes.values():
                 ymin, ymax = ax.get_ybound()
                 ax.vlines(time, ymin, ymax, colors='black', linestyles='dashed',
