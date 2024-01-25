@@ -11,12 +11,8 @@ import typing
 
 from . import preprocess, signal
 
-def epochs_from_records(intervals):
-    return pd.DataFrame.from_records(intervals,
-                                     columns=["type", "start", "end"])
-
-def events_from_records(events):
-    return pd.DataFrame.from_records(events, columns=["type", "time"])
+def empty_intervals():
+    return pd.DataFrame(columns=["trial", "type", "start", "end"])
 
 class Sampling:
     def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
@@ -45,7 +41,7 @@ class Sampling:
         if intervals:
             intervals = pd.concat(intervals)
         else:
-            intervals = pd.DataFrame(columns=["trial", "type", "start", "end"])
+            intervals = empty_intervals()
 
         trials = self.trials.mean(axis=0, numeric_only=True)
         trials = pd.DataFrame(data=trials.values[np.newaxis, :],
