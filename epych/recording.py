@@ -127,8 +127,7 @@ class Recording(Sampling):
         trials = pd.DataFrame(data=trials,
                               columns=list(trial_columns)).set_index("trial")
         signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
-        return Sampling(pd.DataFrame(columns=["type", "start", "end"]),
-                        trials, self.units, **signals)
+        return Sampling(empty_intervals(), trials, self.units, **signals)
 
     def plot(self, **events):
         fig, axes = plt.subplot_mosaic([[sig] for sig in self.signals],
