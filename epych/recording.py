@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import quantities as pq
-import seaborn as sns
 import typing
 
 from . import preprocess, signal
@@ -130,15 +129,16 @@ class Recording(Sampling):
         return Sampling(empty_intervals(), trials, self.units, **signals)
 
     def plot(self, **events):
-        fig, axes = plt.subplot_mosaic([[sig] for sig in self.signals],
-                                       layout='constrained', sharex=True)
-        for sig, ax in axes.items():
-            ax.set_title(sig)
-            self.signals[sig].plot(ax=ax)
+        fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
+                                       figsize=(len(self.signals) * 15, 3))
 
-        for (event, time) in events.items():
-            for ax in axes.values():
+        for sig, ax in axes.items():
+            self.signals[sig].plot(ax=ax, fig=fig, title=sig)
+            for (event, time) in events.items():
                 ymin, ymax = ax.get_ybound()
-                ax.vlines(time, ymin, ymax, colors='black', linestyles='dashed',
-                          label=event)
-                ax.annotate(event, (time + 0.005, ymax))
+                xtime = self.signals[sig].sample_at(time)
+                ax.vlines(xtime, ymin, ymax, colors='black',
+                          linestyles='dashed', label=event)
+                ax.annotate(event, (xtime + 0.005, ymax))
+
+        fig.tight_layout()
