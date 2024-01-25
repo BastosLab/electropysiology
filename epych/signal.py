@@ -127,7 +127,8 @@ class ContinuousSignal(Signal):
         trials_data = [data[:, :trials_samples] for data in trials_data]
         trials_data = np.concatenate(trials_data, axis=-1)
         timestamps = np.arange(0., trials_data.shape[1] * self.dt, self.dt)
-        return self.iid_signal(self.channels, trials_data, self.dt, timestamps)
+        return self.iid_signal(self.channels, trials_data, self.dt,
+                               timestamps + time_shift)
 
     def heatmap(self, ax=None, xlims=None, ylims=None):
         if ax is None:
