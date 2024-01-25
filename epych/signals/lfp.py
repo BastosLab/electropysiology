@@ -39,7 +39,5 @@ class LocalFieldPotential(signal.Signal):
 class ContinuousLfp(LocalFieldPotential, signal.ContinuousSignal):
     iid_signal = LocalFieldPotential
 
-    def plot(self, ax=None, **kwargs):
-        if ax is None:
-            ax = plt.gca()
-        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
+    def plot(self, *args, **kwargs):
+        return self.heatmap(*args, **kwargs)
