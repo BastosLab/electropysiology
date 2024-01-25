@@ -139,13 +139,33 @@ class ContinuousSignal(Signal):
         return self.iid_signal(self.channels, trials_data, self.dt,
                                timestamps + time_shift)
 
-    def heatmap(self, ax=None, xlims=None, ylims=None):
+    def line_plot(self, ax=None, **kwargs):
         if ax is None:
             ax = plt.gca()
+        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
+    def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
+                origin="lower"):
+        if ax is None:
+            ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
+
+        data = self.data.squeeze()
         sns.heatmap(self.data.squeeze(), ax=ax, linewidth=0, cmap='viridis',
-                    cbar=False, robust=True)
-        if xlims is not None:
-            ax.set_xlim(*xlims)
-        if ylims is not None:
-            ax.set_ylim(*ylims)
+                    cbar=True, vmin=vmin, vmax=vmax)
+        if origin == "lower":
+            ax.invert_yaxis()
+
+        # img = imagesc(ax, data, vmin=vmin, vmax=vmax, origin='lower')
+        # fig.colorbar(img, ax=ax)
+        if title is not None:
+            ax.set_title(title)
+
+        xtick_locs = np.linspace(0, data.shape[1], 20)
+        xticks = np.linspace(self.times[0], self.times[-1], 20)
+        xticks = ["%0.2f" % t for t in xticks]
+        ax.set_xticks(xtick_locs, xticks)
+
+    def plot(self, *args, **kwargs):
+        return self.line_plot(*args, **kwargs)
