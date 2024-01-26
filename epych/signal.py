@@ -135,9 +135,8 @@ class ContinuousSignal(Signal):
         trials_samples = min(data.shape[1] for data in trials_data)
         trials_data = [data[:, :trials_samples] for data in trials_data]
         trials_data = np.concatenate(trials_data, axis=-1)
-        timestamps = np.arange(0., trials_data.shape[1] * self.dt, self.dt)
-        return self.iid_signal(self.channels, trials_data, self.dt,
-                               timestamps + time_shift)
+        timestamps = np.arange(trials_data.shape[1]) * self.dt + time_shift
+        return self.iid_signal(self.channels, trials_data, self.dt, timestamps)
 
     def line_plot(self, ax=None, **kwargs):
         if ax is None:
