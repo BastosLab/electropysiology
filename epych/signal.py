@@ -16,6 +16,11 @@ class Signal(collections.abc.Sequence):
         self._dt = dt
         self._timestamps = timestamps
 
+    def baseline_correct(self, start, stop):
+        start, stop = self.sample_at(start), self.sample_at(stop) - 1
+        f = lambda data: data - data[:, start:stop].mean(axis=1, keepdims=True)
+        return self.fmap(f)
+
     @property
     def channels(self):
         return self._channels
@@ -32,9 +37,13 @@ class Signal(collections.abc.Sequence):
     def dt(self):
         return self._dt
 
-    def erp(self):
-        mean_data = self.data.mean(-1, keepdims=True)
-        return ContinuousSignal(self.channels, mean_data, self.dt, self.times)
+    def erp(self, baseline_time=None):
+        if baseline_time is not None:
+            data = self.baseline_correct(0, baseline_time).data
+        else:
+            data = self.data
+        return ContinuousSignal(self.channels, data.mean(-1, keepdims=True),
+                                self.dt, self.times)
 
     @property
     def f0(self):
@@ -130,13 +139,33 @@ class ContinuousSignal(Signal):
         return self.iid_signal(self.channels, trials_data, self.dt,
                                timestamps + time_shift)
 
-    def heatmap(self, ax=None, xlims=None, ylims=None):
+    def line_plot(self, ax=None, **kwargs):
         if ax is None:
             ax = plt.gca()
+        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
+    def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
+                origin="lower"):
+        if ax is None:
+            ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
+
+        data = self.data.squeeze()
         sns.heatmap(self.data.squeeze(), ax=ax, linewidth=0, cmap='viridis',
-                    cbar=False, robust=True)
-        if xlims is not None:
-            ax.set_xlim(*xlims)
-        if ylims is not None:
-            ax.set_ylim(*ylims)
+                    cbar=True, vmin=vmin, vmax=vmax)
+        if origin == "lower":
+            ax.invert_yaxis()
+
+        # img = imagesc(ax, data, vmin=vmin, vmax=vmax, origin='lower')
+        # fig.colorbar(img, ax=ax)
+        if title is not None:
+            ax.set_title(title)
+
+        xtick_locs = np.linspace(0, data.shape[1], 20)
+        xticks = np.linspace(self.times[0], self.times[-1], 20)
+        xticks = ["%0.2f" % t for t in xticks]
+        ax.set_xticks(xtick_locs, xticks)
+
+    def plot(self, *args, **kwargs):
+        return self.line_plot(*args, **kwargs)

@@ -6,17 +6,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import quantities as pq
-import seaborn as sns
 import typing
 
 from . import preprocess, signal
 
-def epochs_from_records(intervals):
-    return pd.DataFrame.from_records(intervals,
-                                     columns=["type", "start", "end"])
-
-def events_from_records(events):
-    return pd.DataFrame.from_records(events, columns=["type", "time"])
+def empty_intervals():
+    return pd.DataFrame(columns=["trial", "type", "start", "end"])
 
 class Sampling:
     def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
@@ -34,7 +29,7 @@ class Sampling:
         self._trials = trials
         self._units = units
 
-    def erp(self):
+    def erp(self, baseline_time=None):
         intervals = []
         for epoch_type in self.intervals["type"].unique():
             epochs = self.intervals.loc[self.intervals["type"] == epoch_type]
@@ -45,14 +40,14 @@ class Sampling:
         if intervals:
             intervals = pd.concat(intervals)
         else:
-            intervals = pd.DataFrame(columns=["trial", "type", "start", "end"])
+            intervals = empty_intervals()
 
         trials = self.trials.mean(axis=0, numeric_only=True)
         trials = pd.DataFrame(data=trials.values[np.newaxis, :],
                               columns=trials.index.values)
         trials = trials.assign(trial=[0]).set_index("trial")
 
-        signals = {k: v.erp() for k, v in self.signals.items()}
+        signals = {k: v.erp(baseline_time) for k, v in self.signals.items()}
         return Recording(intervals, trials, self.units, **signals)
 
     def time_lock(self, time, before=0., after=0.):
@@ -131,19 +126,20 @@ class Recording(Sampling):
         trials = pd.DataFrame(data=trials,
                               columns=list(trial_columns)).set_index("trial")
         signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
-        return Sampling(pd.DataFrame(columns=["type", "start", "end"]),
-                        trials, self.units, **signals)
+        return Sampling(empty_intervals(), trials, self.units, **signals)
 
-    def plot(self, **events):
-        fig, axes = plt.subplot_mosaic([[sig] for sig in self.signals],
-                                       layout='constrained', sharex=True)
+    def plot(self, vmin=None, vmax=None, **events):
+        fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
+                                       figsize=(len(self.signals) * 15, 3))
+
         for sig, ax in axes.items():
-            ax.set_title(sig)
-            self.signals[sig].plot(ax=ax)
-
-        for (event, time) in events.items():
-            for ax in axes.values():
+            self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
+                                   vmax=vmax)
+            for (event, time) in events.items():
                 ymin, ymax = ax.get_ybound()
-                ax.vlines(time, ymin, ymax, colors='black', linestyles='dashed',
-                          label=event)
-                ax.annotate(event, (time + 0.005, ymax))
+                xtime = self.signals[sig].sample_at(time)
+                ax.vlines(xtime, ymin, ymax, colors='black',
+                          linestyles='dashed', label=event)
+                ax.annotate(event, (xtime + 0.005, ymax))
+
+        fig.tight_layout()

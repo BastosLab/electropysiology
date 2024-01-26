@@ -17,9 +17,9 @@ class LocalFieldPotential(signal.Signal):
         return self.__class__(self.channels[2:-2], channel_csds, self.dt,
                               self.times)
 
-    def erp(self):
-        mean_data = self.data.mean(-1, keepdims=True)
-        return ContinuousLfp(self.channels, mean_data, self.dt, self.times)
+    def erp(self, baseline_time=None):
+        erp = super().erp(baseline_time)
+        return ContinuousLfp(erp.channels, erp.data, erp.dt, erp.times)
 
     def power_spectrum(self, dBs=True, relative=False, taper=None):
         xs = self.data
@@ -39,7 +39,5 @@ class LocalFieldPotential(signal.Signal):
 class ContinuousLfp(LocalFieldPotential, signal.ContinuousSignal):
     iid_signal = LocalFieldPotential
 
-    def plot(self, ax=None, **kwargs):
-        if ax is None:
-            ax = plt.gca()
-        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
+    def plot(self, *args, **kwargs):
+        return self.heatmap(*args, **kwargs)
