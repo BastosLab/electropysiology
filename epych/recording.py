@@ -93,8 +93,18 @@ class Recording(Sampling):
         assert len(trials) <= 1
         super().__init__(intervals, trials, units, **signals)
 
-    def epoch(self, epoch_type, before=0., after=0.):
-        epochs = self.intervals.loc[self.intervals["type"] == epoch_type]
+    def epoch(self, epoch_types, before=0., after=0.):
+        if not isinstance(epoch_types, tuple):
+            epoch_types = (epoch_types,)
+        epochs = self.intervals.loc[self.intervals["type"] == epoch_types[0]]
+        for parent_type in epoch_types[1:]:
+            parent = self.intervals.loc[self.intervals["type"] == parent_type]
+
+            mask = np.concatenate([
+                np.where((parent["start"] < start) & (end < parent["end"]))[0]
+                for (start, end) in zip(epochs["start"], epochs["end"])
+            ])
+            epochs = parent.loc[mask]
         onsets, offsets = epochs["start"], epochs["end"]
         onsets, offsets = onsets - before, offsets + after
 
@@ -102,7 +112,7 @@ class Recording(Sampling):
         trials = []
         for t, (onset, offset) in enumerate(epoch_intervals):
             inners = (self.intervals["start"] > onset) &\
-                    (self.intervals["end"] < offset)
+                     (self.intervals["end"] < offset)
             inners = self.intervals.loc[inners]
             inners = inners.assign(trial=[t] * len(inners))
             inners.loc[:, "start":"end"] -= onset
@@ -125,6 +135,7 @@ class Recording(Sampling):
         }
         trials = pd.DataFrame(data=trials,
                               columns=list(trial_columns)).set_index("trial")
+        trials = trials.groupby("trial").sum()
         signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
         return Sampling(empty_intervals(), trials, self.units, **signals)
 
