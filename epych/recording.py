@@ -128,12 +128,13 @@ class Recording(Sampling):
         signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
         return Sampling(empty_intervals(), trials, self.units, **signals)
 
-    def plot(self, **events):
+    def plot(self, vmin=None, vmax=None, **events):
         fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
                                        figsize=(len(self.signals) * 15, 3))
 
         for sig, ax in axes.items():
-            self.signals[sig].plot(ax=ax, fig=fig, title=sig)
+            self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
+                                   vmax=vmax)
             for (event, time) in events.items():
                 ymin, ymax = ax.get_ybound()
                 xtime = self.signals[sig].sample_at(time)
