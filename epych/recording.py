@@ -96,7 +96,8 @@ class Recording(Sampling):
     def epoch(self, epoch_types, before=0., after=0.):
         if not isinstance(epoch_types, tuple):
             epoch_types = (epoch_types,)
-        epochs = self.intervals.loc[self.intervals["type"] == epoch_types[0]]
+        targets = self.intervals.loc[self.intervals["type"] == epoch_types[0]]
+        epochs = targets
         for parent_type in epoch_types[1:]:
             parent = self.intervals.loc[self.intervals["type"] == parent_type]
 
@@ -105,8 +106,9 @@ class Recording(Sampling):
                 for (start, end) in zip(epochs["start"], epochs["end"])
             ])
             epochs = parent.loc[mask]
-        onsets, offsets = epochs["start"], epochs["end"]
-        onsets, offsets = onsets - before, offsets + after
+        befores = (targets["start"].values - epochs["start"].values).mean() + before
+        afters = (epochs["end"].values - targets["end"].values).mean() + after
+        onsets, offsets = targets["start"] - befores, targets["end"] + afters
 
         epoch_intervals = np.stack((onsets.values, offsets.values), axis=-1)
         trials = []
@@ -136,7 +138,8 @@ class Recording(Sampling):
         trials = pd.DataFrame(data=trials,
                               columns=list(trial_columns)).set_index("trial")
         trials = trials.groupby("trial").sum()
-        signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
+        signals = {k: s.epoch(epoch_intervals, -befores) for k, s in
+                   self.signals.items()}
         return Sampling(empty_intervals(), trials, self.units, **signals)
 
     def plot(self, vmin=None, vmax=None, **events):
