@@ -2,6 +2,8 @@
 
 from collections import Counter
 import collections.abc as abc
+import functools
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,7 +15,7 @@ from . import preprocess, signal
 def empty_intervals():
     return pd.DataFrame(columns=["trial", "type", "start", "end"])
 
-class Sampling:
+class Sampling(abc.Sequence):
     def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
                  units: dict[str, pq.UnitQuantity], **signals):
         for column in units:
@@ -50,21 +52,25 @@ class Sampling:
         signals = {k: v.erp(baseline_time) for k, v in self.signals.items()}
         return Recording(intervals, trials, self.units, **signals)
 
-    def time_lock(self, time, before=0., after=0.):
-        onset, offset = time - before, time + after
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            key = slice(key, key+1, None)
+        if key.step is None:
+            key = slice(key.start, key.stop, 1)
 
-        signals = {k: s[onset:offset] for k, s in self.signals.items()}
-
+        onset, offset = key.start, key.stop
         inner_intervals = self.intervals["start"].values >= onset &\
                           self.intervals["end"].values <= offset
         inner_intervals = self.intervals.loc[inner_intervals]
-        if len(inner_intervals):
-            inner_intervals[:, "start":"end"] -= onset
-        return Sampling(inner_intervals, self.trials, self.units, **signals)
+        return self.__class__(inner_intervals, self.trials, self.units,
+                              **{k: v[key] for k, v in self.signals.items()})
 
     @property
     def intervals(self):
         return self._intervals
+
+    def __len__(self):
+        return math.min(len(signal) for signal in self.signals.values())
 
     def select_trials(self, f, *columns):
         trial_entries = (list(self.trials[col].values) for col in columns)
@@ -78,6 +84,10 @@ class Sampling:
     @property
     def signals(self):
         return self._signals
+
+    def time_lock(self, time, before=0., after=0.):
+        key = slice(time - before, time + after, None)
+        return self[key]
 
     @property
     def trials(self):
