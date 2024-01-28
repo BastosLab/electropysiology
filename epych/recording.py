@@ -93,16 +93,27 @@ class Recording(Sampling):
         assert len(trials) <= 1
         super().__init__(intervals, trials, units, **signals)
 
-    def epoch(self, epoch_type, before=0., after=0.):
-        epochs = self.intervals.loc[self.intervals["type"] == epoch_type]
-        onsets, offsets = epochs["start"], epochs["end"]
-        onsets, offsets = onsets - before, offsets + after
+    def epoch(self, inner_epochs, outer_epochs=None, before=0., after=0.):
+        targets = self.intervals.loc[inner_epochs]
+        if outer_epochs is not None:
+            parent = self.intervals.loc[outer_epochs]
+
+            mask = np.concatenate([
+                np.where((parent["start"] < start) & (end < parent["end"]))[0]
+                for (start, end) in zip(targets["start"], targets["end"])
+            ])
+            epochs = parent.loc[mask]
+        else:
+            epochs = targets
+        befores = (targets["start"].values - epochs["start"].values).mean() + before
+        afters = (epochs["end"].values - targets["end"].values).mean() + after
+        onsets, offsets = targets["start"] - befores, targets["end"] + afters
 
         epoch_intervals = np.stack((onsets.values, offsets.values), axis=-1)
         trials = []
         for t, (onset, offset) in enumerate(epoch_intervals):
             inners = (self.intervals["start"] > onset) &\
-                    (self.intervals["end"] < offset)
+                     (self.intervals["end"] < offset)
             inners = self.intervals.loc[inners]
             inners = inners.assign(trial=[t] * len(inners))
             inners.loc[:, "start":"end"] -= onset
@@ -125,7 +136,9 @@ class Recording(Sampling):
         }
         trials = pd.DataFrame(data=trials,
                               columns=list(trial_columns)).set_index("trial")
-        signals = {k: s.epoch(epoch_intervals) for k, s in self.signals.items()}
+        trials = trials.groupby("trial").sum()
+        signals = {k: s.epoch(epoch_intervals, -befores) for k, s in
+                   self.signals.items()}
         return Sampling(empty_intervals(), trials, self.units, **signals)
 
     def plot(self, vmin=None, vmax=None, **events):
