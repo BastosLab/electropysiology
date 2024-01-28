@@ -31,6 +31,14 @@ class Sampling(abc.Sequence):
         self._trials = trials
         self._units = units
 
+    def __add__(self, other):
+        assert self.signals.keys() == other.signals.keys()
+        assert (self.trials == other.trials).all().all()
+        assert self.units == other.units
+        intervals = empty_intervals()
+        signals = {k: self.signals[k] + other.signals[k] for k in self.signals}
+        return self.__class__(intervals, self.trials, self.units, **signals)
+
     def erp(self, baseline_time=None):
         intervals = []
         for epoch_type in self.intervals["type"].unique():
@@ -84,6 +92,14 @@ class Sampling(abc.Sequence):
     @property
     def signals(self):
         return self._signals
+
+    def __sub__(self, other):
+        assert self.signals.keys() == other.signals.keys()
+        assert (self.trials == other.trials).all().all()
+        assert self.units == other.units
+        intervals = empty_intervals()
+        signals = {k: self.signals[k] - other.signals[k] for k in self.signals}
+        return self.__class__(intervals, self.trials, self.units, **signals)
 
     def time_lock(self, time, before=0., after=0.):
         key = slice(time - before, time + after, None)
