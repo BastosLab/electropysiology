@@ -93,19 +93,18 @@ class Recording(Sampling):
         assert len(trials) <= 1
         super().__init__(intervals, trials, units, **signals)
 
-    def epoch(self, epoch_types, before=0., after=0.):
-        if not isinstance(epoch_types, tuple):
-            epoch_types = (epoch_types,)
-        targets = self.intervals.loc[self.intervals["type"] == epoch_types[0]]
-        epochs = targets
-        for parent_type in epoch_types[1:]:
-            parent = self.intervals.loc[self.intervals["type"] == parent_type]
+    def epoch(self, inner_epochs, outer_epochs=None, before=0., after=0.):
+        targets = self.intervals.loc[inner_epochs]
+        if outer_epochs is not None:
+            parent = self.intervals.loc[outer_epochs]
 
             mask = np.concatenate([
                 np.where((parent["start"] < start) & (end < parent["end"]))[0]
-                for (start, end) in zip(epochs["start"], epochs["end"])
+                for (start, end) in zip(targets["start"], targets["end"])
             ])
             epochs = parent.loc[mask]
+        else:
+            epochs = targets
         befores = (targets["start"].values - epochs["start"].values).mean() + before
         afters = (epochs["end"].values - targets["end"].values).mean() + after
         onsets, offsets = targets["start"] - befores, targets["end"] + afters
