@@ -16,6 +16,16 @@ class Signal(collections.abc.Sequence):
         self._dt = dt
         self._timestamps = timestamps
 
+    def __add__(self, sig):
+        assert self.__class__ == other.__class__
+        assert self.channels == sig.channels
+        assert self.dt == sig.dt
+        assert len(self) == len(sig)
+        num_samples = min(self.data.shape[1], sig.data.shape[1])
+        timestamps = np.arange(num_samples) * self.dt
+        data = self.data[:num_samples] + sig.data[:num_samples]
+        return self.__class__(self.channels, data, self.dt, timestamps)
+
     def baseline_correct(self, start, stop):
         start, stop = self.sample_at(start), self.sample_at(stop) - 1
         f = lambda data: data - data[:, start:stop].mean(axis=1, keepdims=True)
@@ -94,6 +104,16 @@ class Signal(collections.abc.Sequence):
     def sort_channels(self, key):
         indices = self.channels.sort_values(key, ascending=False).index
         return [self.channels.index.get_loc(i) for i in indices]
+
+    def __sub__(self, sig):
+        assert self.__class__ == other.__class__
+        assert self.channels == sig.channels
+        assert self.dt == sig.dt
+        assert len(self) == len(sig)
+        num_samples = min(self.data.shape[1], sig.data.shape[1])
+        timestamps = np.arange(num_samples) * self.dt
+        data = self.data[:num_samples] - sig.data[:num_samples]
+        return self.__class__(self.channels, data, self.dt, timestamps)
 
     @property
     def T(self):
