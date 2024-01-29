@@ -150,8 +150,8 @@ class Recording(Sampling):
                 }
                 trials.append({
                     "trial": t,
-                    inner.type + "_start": inner.start,
-                    inner.type + "_end": inner.end,
+                    inner.type + "_start": inner.start - befores,
+                    inner.type + "_end": inner.end - befores,
                     **remainder
                 })
         trial_columns = [set(trial.keys()) for trial in trials]
