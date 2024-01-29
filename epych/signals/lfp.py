@@ -17,8 +17,8 @@ class LocalFieldPotential(signal.Signal):
         return self.__class__(self.channels[2:-2], channel_csds, self.dt,
                               self.times)
 
-    def erp(self, baseline_time=None):
-        erp = super().erp(baseline_time)
+    def erp(self):
+        erp = super().erp()
         return ContinuousLfp(erp.channels, erp.data, erp.dt, erp.times)
 
     def power_spectrum(self, dBs=True, relative=False, taper=None):
