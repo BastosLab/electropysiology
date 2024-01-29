@@ -39,6 +39,11 @@ class Sampling(abc.Sequence):
         signals = {k: self.signals[k] + other.signals[k] for k in self.signals}
         return self.__class__(intervals, self.trials, self.units, **signals)
 
+    def baseline_correct(self, start, stop):
+        return self.__class__(self.intervals, self.trials, self.units, **{
+            k: v.baseline_correct(start, stop) for k, v in self.signals.items()
+        })
+
     def erp(self):
         intervals = []
         for epoch_type in self.intervals["type"].unique():
