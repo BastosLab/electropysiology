@@ -17,7 +17,7 @@ class Signal(collections.abc.Sequence):
         self._timestamps = timestamps
 
     def __add__(self, sig):
-        assert self.__class__ == other.__class__
+        assert self.__class__ == sig.__class__
         assert self.channels == sig.channels
         assert self.dt == sig.dt
         assert len(self) == len(sig)
@@ -106,7 +106,7 @@ class Signal(collections.abc.Sequence):
         return [self.channels.index.get_loc(i) for i in indices]
 
     def __sub__(self, sig):
-        assert self.__class__ == other.__class__
+        assert self.__class__ == sig.__class__
         assert self.channels == sig.channels
         assert self.dt == sig.dt
         assert len(self) == len(sig)
