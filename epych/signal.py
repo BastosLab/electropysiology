@@ -47,13 +47,9 @@ class Signal(collections.abc.Sequence):
     def dt(self):
         return self._dt
 
-    def erp(self, baseline_time=None):
-        if baseline_time is not None:
-            data = self.baseline_correct(0, baseline_time).data
-        else:
-            data = self.data
-        return ContinuousSignal(self.channels, data.mean(-1, keepdims=True),
-                                self.dt, self.times)
+    def erp(self):
+        data = self.data.mean(-1, keepdims=True)
+        return ContinuousSignal(self.channels, data, self.dt, self.times)
 
     @property
     def f0(self):
