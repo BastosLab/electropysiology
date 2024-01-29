@@ -172,8 +172,6 @@ class ContinuousSignal(Signal):
         if origin == "lower":
             ax.invert_yaxis()
 
-        # img = imagesc(ax, data, vmin=vmin, vmax=vmax, origin='lower')
-        # fig.colorbar(img, ax=ax)
         if title is not None:
             ax.set_title(title)
 
