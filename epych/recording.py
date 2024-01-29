@@ -39,7 +39,7 @@ class Sampling(abc.Sequence):
         signals = {k: self.signals[k] + other.signals[k] for k in self.signals}
         return self.__class__(intervals, self.trials, self.units, **signals)
 
-    def erp(self, baseline_time=None):
+    def erp(self):
         intervals = []
         for epoch_type in self.intervals["type"].unique():
             epochs = self.intervals.loc[self.intervals["type"] == epoch_type]
@@ -57,7 +57,7 @@ class Sampling(abc.Sequence):
                               columns=trials.index.values)
         trials = trials.assign(trial=[0]).set_index("trial")
 
-        signals = {k: v.erp(baseline_time) for k, v in self.signals.items()}
+        signals = {k: v.erp() for k, v in self.signals.items()}
         return Recording(intervals, trials, self.units, **signals)
 
     def __getitem__(self, key):
