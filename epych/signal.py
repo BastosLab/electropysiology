@@ -19,7 +19,7 @@ class Signal(collections.abc.Sequence):
 
     def __add__(self, sig):
         assert self.__class__ == sig.__class__
-        assert self.channels == sig.channels
+        assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
         assert len(self) == len(sig)
         num_samples = min(self.data.shape[1], sig.data.shape[1])
@@ -104,7 +104,7 @@ class Signal(collections.abc.Sequence):
 
     def __sub__(self, sig):
         assert self.__class__ == sig.__class__
-        assert self.channels == sig.channels
+        assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
         assert len(self) == len(sig)
         num_samples = min(self.data.shape[1], sig.data.shape[1])
