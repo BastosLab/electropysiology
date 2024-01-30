@@ -44,6 +44,11 @@ class Signal(collections.abc.Sequence):
     def df(self):
         return 1. / self.T
 
+    def downsample(self, n):
+        channels = self.channels.loc[0::n]
+        data = self.data[0::n, :, :]
+        return self.__class__(channels, data, self.dt, self.times)
+
     @property
     def dt(self):
         return self._dt
