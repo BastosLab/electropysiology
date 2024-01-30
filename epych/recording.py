@@ -176,8 +176,12 @@ class Recording(Sampling):
         return Sampling(empty_intervals(), trials, self.units, **signals)
 
     def plot(self, vmin=None, vmax=None, **events):
-        fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
-                                       figsize=(len(self.signals) * 15, 3))
+        timespan = np.array([sig.times[-1] - sig.times[0] for sig in
+                             self.signals.values()]).mean().round(2) * 2.75
+        fig, axes = plt.subplot_mosaic(
+            [[sig for sig in self.signals]],
+            figsize=(len(self.signals) * math.ceil(timespan), 3)
+        )
 
         for sig, ax in axes.items():
             self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
