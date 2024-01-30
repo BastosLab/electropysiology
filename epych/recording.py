@@ -40,9 +40,7 @@ class Sampling(abc.Sequence):
         return self.__class__(intervals, self.trials, self.units, **signals)
 
     def baseline_correct(self, start, stop):
-        return self.__class__(self.intervals, self.trials, self.units, **{
-            k: v.baseline_correct(start, stop) for k, v in self.signals.items()
-        })
+        return self.smap(lambda v: v.baseline_correct(start, stop))
 
     def erp(self):
         intervals = []
@@ -97,6 +95,11 @@ class Sampling(abc.Sequence):
     @property
     def signals(self):
         return self._signals
+
+    def smap(self, f):
+        return self.__class__(self.intervals, self.trials, self.units, **{
+            k: f(v) for k, v in self.signals.items()
+        })
 
     def __sub__(self, other):
         assert self.signals.keys() == other.signals.keys()
