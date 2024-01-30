@@ -4,10 +4,11 @@ import collections.abc
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 class Signal(collections.abc.Sequence):
-    def __init__(self, channels, data, dt, timestamps):
+    def __init__(self, channels: pd.DataFrame, data, dt, timestamps):
         assert len(data.shape) == 3
         assert len(timestamps) == data.shape[1]
 
