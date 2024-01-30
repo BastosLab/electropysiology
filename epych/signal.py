@@ -4,10 +4,11 @@ import collections.abc
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 class Signal(collections.abc.Sequence):
-    def __init__(self, channels, data, dt, timestamps):
+    def __init__(self, channels: pd.DataFrame, data, dt, timestamps):
         assert len(data.shape) == 3
         assert len(timestamps) == data.shape[1]
 
@@ -18,7 +19,7 @@ class Signal(collections.abc.Sequence):
 
     def __add__(self, sig):
         assert self.__class__ == sig.__class__
-        assert self.channels == sig.channels
+        assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
         assert len(self) == len(sig)
         num_samples = min(self.data.shape[1], sig.data.shape[1])
@@ -42,6 +43,11 @@ class Signal(collections.abc.Sequence):
     @property
     def df(self):
         return 1. / self.T
+
+    def downsample(self, n):
+        channels = self.channels.loc[0::n]
+        data = self.data[0::n, :, :]
+        return self.__class__(channels, data, self.dt, self.times)
 
     @property
     def dt(self):
@@ -103,7 +109,7 @@ class Signal(collections.abc.Sequence):
 
     def __sub__(self, sig):
         assert self.__class__ == sig.__class__
-        assert self.channels == sig.channels
+        assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
         assert len(self) == len(sig)
         num_samples = min(self.data.shape[1], sig.data.shape[1])
