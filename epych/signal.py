@@ -175,7 +175,7 @@ class ContinuousSignal(Signal):
         ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
-                origin="lower"):
+                origin="lower", channel_annotations="location"):
         if ax is None:
             ax = plt.gca()
         if fig is None:
@@ -195,6 +195,9 @@ class ContinuousSignal(Signal):
         xticks = np.linspace(self.times[0], self.times[-1], num_xticks)
         xticks = ["%0.2f" % t for t in xticks]
         ax.set_xticks(xtick_locs, xticks)
+
+        if channel_annotations is not None:
+            self.annotate_channels(ax, channel_annotations)
 
     def plot(self, *args, **kwargs):
         return self.line_plot(*args, **kwargs)
