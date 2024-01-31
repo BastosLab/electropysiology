@@ -147,6 +147,15 @@ class ContinuousSignal(Signal):
         assert data.shape[2] == 1
         super().__init__(channels, data, dt, timestamps)
 
+    def annotate_channels(self, ax, key):
+        prev_channel = ""
+        for c, channel in enumerate(self.channels[key].values):
+            if channel == prev_channel:
+                continue
+            prev_channel = channel
+            line = ax.axhline(c, linestyle="--", color="black")
+            ax.annotate(channel.decode(), line.get_xydata()[0, :])
+
     def epoch(self, intervals, time_shift=0.):
         assert intervals.shape[1] == 2 and intervals.shape[0] >= 1
 
@@ -166,7 +175,7 @@ class ContinuousSignal(Signal):
         ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
-                origin="lower"):
+                origin="lower", channel_annotations="location"):
         if ax is None:
             ax = plt.gca()
         if fig is None:
@@ -186,6 +195,9 @@ class ContinuousSignal(Signal):
         xticks = np.linspace(self.times[0], self.times[-1], num_xticks)
         xticks = ["%0.2f" % t for t in xticks]
         ax.set_xticks(xtick_locs, xticks)
+
+        if channel_annotations is not None:
+            self.annotate_channels(ax, channel_annotations)
 
     def plot(self, *args, **kwargs):
         return self.line_plot(*args, **kwargs)
