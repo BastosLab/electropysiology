@@ -147,6 +147,15 @@ class ContinuousSignal(Signal):
         assert data.shape[2] == 1
         super().__init__(channels, data, dt, timestamps)
 
+    def annotate_channels(self, ax, key):
+        prev_channel = ""
+        for c, channel in enumerate(self.channels[key].values):
+            if channel == prev_channel:
+                continue
+            prev_channel = channel
+            line = ax.axhline(c, linestyle="--", color="black")
+            ax.annotate(channel.decode(), line.get_xydata()[0, :])
+
     def epoch(self, intervals, time_shift=0.):
         assert intervals.shape[1] == 2 and intervals.shape[0] >= 1
 
