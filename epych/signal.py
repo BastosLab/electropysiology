@@ -181,8 +181,9 @@ class ContinuousSignal(Signal):
         if title is not None:
             ax.set_title(title)
 
-        xtick_locs = np.linspace(0, data.shape[1], 20)
-        xticks = np.linspace(self.times[0], self.times[-1], 20)
+        num_xticks = len(ax.get_xticks())
+        xtick_locs = np.linspace(0, data.shape[1], num_xticks)
+        xticks = np.linspace(self.times[0], self.times[-1], num_xticks)
         xticks = ["%0.2f" % t for t in xticks]
         ax.set_xticks(xtick_locs, xticks)
 
