@@ -189,7 +189,7 @@ class Recording(Sampling):
             for (event, time) in events.items():
                 ymin, ymax = ax.get_ybound()
                 xtime = self.signals[sig].sample_at(time)
-                ax.vlines(xtime, ymin, ymax, colors='black',
+                ax.vlines(xtime, ymin, ymax, colors='lightgreen',
                           linestyles='dashed', label=event)
                 ax.annotate(event, (xtime + 0.005, ymax))
 
