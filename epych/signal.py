@@ -196,7 +196,8 @@ class ContinuousSignal(Signal):
         xticks = ["%0.2f" % t for t in xticks]
         ax.set_xticks(xtick_locs, xticks)
 
-        if channel_annotations is not None:
+        if channel_annotations is not None and\
+           channel_annotations in self.channels.columns:
             self.annotate_channels(ax, channel_annotations)
 
     def plot(self, *args, **kwargs):
