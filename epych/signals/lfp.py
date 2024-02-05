@@ -11,18 +11,33 @@ from .. import signal
 from ..spectrum import Spectrum
 
 class LocalFieldPotential(signal.Signal):
-    def current_source_density(self, method="StandardCSD"):
-        csd_trials = []
-        for trial in range(self.num_trials):
-            neo_lfp = AnalogSignal(self.data[:, :, trial].transpose(),
-                                   units="V", sampling_rate = self.f0 * pq.Hz)
-            channel_depths = self.channels["vertical"].values[:, np.newaxis]
-            neo_lfp.annotate(coordinates=channel_depths * pq.mm)
-            csd_trials.append(np.array(
-                estimate_csd(neo_lfp, method=method).transpose()
-            ))
-        return self.__class__(self.channels, np.stack(csd_trials, axis=-1),
-                              self.dt, self.times)
+    def current_source_density(self, depth_column=None, method="StandardCSD"):
+        if method is None:
+            csd_channels = []
+            for i in range(2, self.num_channels - 2):
+                vi = (self.data[i-2] - 2 * self.data[i] + self.data[i+1])
+                csd_channels.append(-0.4 * vi / (2 * 0.2 ** 2))
+            csd_trials = np.stack(csd_channels, axis=0)
+            channels = self.channels[2:-2]
+        else:
+            csd_trials = []
+            for trial in range(self.num_trials):
+                neo_lfp = AnalogSignal(self.data[:, :, trial].transpose(),
+                                       units="V",
+                                       sampling_rate = self.f0 * pq.Hz)
+                if depth_column is not None and depth_column in self.channels:
+                    channel_depths = self.channels[depth_column].values
+                else:
+                    channel_depths = np.arange(len(self.channels))
+                neo_lfp.annotate(
+                    coordinates=channel_depths[:, np.newaxis] * pq.mm
+                )
+                csd_trials.append(np.array(
+                    estimate_csd(neo_lfp, method=method).transpose()
+                ))
+            csd_trials = np.stack(csd_trials, axis=-1)
+            channels = self.channels
+        return self.__class__(channels, csd_trials, self.dt, self.times)
 
     def erp(self):
         erp = super().erp()
