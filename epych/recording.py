@@ -177,11 +177,9 @@ class Recording(Sampling):
 
     def plot(self, vmin=None, vmax=None, figure=None, figargs={}, **events):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
-                             self.signals.values()]).mean().round(2) * 2.75
-        fig, axes = plt.subplot_mosaic(
-            [[sig for sig in self.signals]],
-            figsize=(len(self.signals) * math.ceil(timespan), 3)
-        )
+                             self.signals.values()]).sum() * 4
+        fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
+                                       figsize=(timespan, 3), dpi=100)
 
         for sig, ax in axes.items():
             self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
@@ -194,7 +192,7 @@ class Recording(Sampling):
                 ax.annotate(event, (xtime + 0.005, ymax))
 
         fig.tight_layout()
+        plt.show()
         if figure is not None:
-            plt.show()
             fig.savefig(figure, **figargs)
-            plt.close(fig)
+        plt.close(fig)
