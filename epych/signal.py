@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import scipy
 
 class Signal(collections.abc.Sequence):
     def __init__(self, channels: pd.DataFrame, data, dt, timestamps):
@@ -81,6 +82,9 @@ class Signal(collections.abc.Sequence):
             last = self.sample_at(offsets[trial])
             self._data[:, :first, trial] *= 0
             self._data[:, last:, trial] *= 0
+
+    def median_filter(self, cs=3):
+        return self.fmap(lambda data: scipy.ndimage.median_filter(data, size=(cs, 1, 1)))
 
     @property
     def num_channels(self):
