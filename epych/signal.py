@@ -10,13 +10,103 @@ import scipy
 
 class Signal(collections.abc.Sequence):
     def __init__(self, channels: pd.DataFrame, data, dt, timestamps):
-        assert len(data.shape) == 3
-        assert len(timestamps) == data.shape[1]
+        assert len(data.shape) >= 2
 
         self._channels = channels
         self._data = data
         self._dt = dt
         self._timestamps = timestamps
+
+    @property
+    def channels(self):
+        return self._channels
+
+    @property
+    def df(self):
+        return 1. / self.T
+
+    @property
+    def dt(self):
+        return self._dt
+
+    def _data_slices(self, channels, times, trials):
+        if channels is None:
+            channels = slice(0, self.num_channels, 1)
+        else:
+            if isinstance(channels, int):
+                channels = slice(channels, channels+1, None)
+            if channels.step is None:
+                channels = slice(channels.start, channels.stop, 1)
+        if times is None:
+            times = slice(self.times[0], self.times[-1], None)
+        else:
+            if isinstance(times, int):
+                times = slice(times, times+1, None)
+            if times.step is None:
+                times = slice(times.start, times.stop, 1)
+        if trials is None:
+            trials = slice(None, None, None)
+        else:
+            if isinstance(trials, int):
+                trials = slice(trials, trials+1, None)
+            if trials.step is None:
+                trials = slice(trials.start, trials.stop, 1)
+        return channels, times, trials
+
+    @property
+    def f0(self):
+        return 1. / self.dt
+
+    def fmap(self, f):
+        return self.__class__(self.channels, f(self.data), self.dt,
+                              self.times)
+
+    @property
+    def fNQ(self):
+        return self.f0 / 2.
+
+    def get_data(self, channels=None, times=None, trials=None):
+        assert isinstance(channels, slice)
+        assert isinstance(times, slice)
+        assert isinstance(trials, slice)
+        raise NotImplementedError
+
+    def __len__(self):
+        return len(self._timestamps)
+
+    @property
+    def num_channels(self):
+        return len(self._channels)
+
+    @property
+    def num_trials(self):
+        raise NotImplementedError
+
+    def sample_at(self, t):
+        return np.nanargmin(np.abs(self._timestamps - t))
+
+    def sort_channels(self, key):
+        indices = self.channels.sort_values(key, ascending=False).index
+        return [self.channels.index.get_loc(i) for i in indices]
+
+    @property
+    def T(self):
+        return self.dt * len(self)
+
+    @property
+    def times(self):
+        return self._timestamps
+
+    def time_to_samples(self, t):
+        return math.ceil(t * self.f0)
+
+class EpochedSignal(Signal):
+    def __init__(self, channels: pd.DataFrame, data, dt, timestamps):
+        assert len(data.shape) == 3
+        assert len(channels) == data.shape[0]
+        assert len(timestamps) == data.shape[1]
+
+        super().__init__(channels, data, dt, timestamps)
 
     def __add__(self, sig):
         assert self.__class__ == sig.__class__
@@ -34,44 +124,35 @@ class Signal(collections.abc.Sequence):
         return self.fmap(f)
 
     @property
-    def channels(self):
-        return self._channels
-
-    @property
     def data(self):
         return self._data
-
-    @property
-    def df(self):
-        return 1. / self.T
 
     def downsample(self, n):
         channels = self.channels.loc[0::n]
         data = self.data[0::n, :, :]
         return self.__class__(channels, data, self.dt, self.times)
 
-    @property
-    def dt(self):
-        return self._dt
-
-    def erp(self):
+    def evoked(self):
         data = self.data.mean(-1, keepdims=True)
-        return ContinuousSignal(self.channels, data, self.dt, self.times)
+        return EvokedSignal(self.channels, data, self.dt, self.times)
 
-    @property
-    def f0(self):
-        return 1. / self.dt
+    def get_data(self, channels, times, trials):
+        channels, times, trials = self._data_slices(channels, times, trials)
 
-    def fmap(self, f):
-        return self.__class__(self.channels, f(self.data), self.dt,
-                              self.times)
+        times = slice(self.sample_at(times.start),
+                      self.sample_at(times.stop) + 1, times.step)
+        return self._data[channels, times, trials]
 
-    @property
-    def fNQ(self):
-        return self.f0 / 2.
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            key = slice(key, key+1, None)
+        if key.step is None:
+            key = slice(key.start, key.stop, 1)
 
-    def __len__(self):
-        return len(self._timestamps)
+        key = slice(self.sample_at(key.start), self.sample_at(key.stop),
+                    key.step)
+        return self.__class__(self.channels, self.data[:, key], self.dt,
+                              self.times[key])
 
     def mask_epochs(self, onsets, offsets):
         assert len(onsets) == len(offsets)
@@ -84,7 +165,9 @@ class Signal(collections.abc.Sequence):
             self._data[:, last:, trial] *= 0
 
     def median_filter(self, cs=3):
-        return self.fmap(lambda data: scipy.ndimage.median_filter(data, size=(cs, 1, 1)))
+        return self.fmap(
+            lambda data: scipy.ndimage.median_filter(data, size=(cs, 1, 1))
+        )
 
     @property
     def num_channels(self):
@@ -93,9 +176,6 @@ class Signal(collections.abc.Sequence):
     @property
     def num_trials(self):
         return self.data.shape[2]
-
-    def sample_at(self, t):
-        return np.nanargmin(np.abs(self._timestamps - t))
 
     def select_channels(self, k, v):
         groups = self.channels.groupby(k).groups
@@ -107,10 +187,6 @@ class Signal(collections.abc.Sequence):
         return self.__class__(self.channels, self.data[:, :, trials],
                               self.dt, self.times)
 
-    def sort_channels(self, key):
-        indices = self.channels.sort_values(key, ascending=False).index
-        return [self.channels.index.get_loc(i) for i in indices]
-
     def __sub__(self, sig):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
@@ -121,32 +197,7 @@ class Signal(collections.abc.Sequence):
         data = self.data[:num_samples] - sig.data[:num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
-    @property
-    def T(self):
-        return self.dt * len(self)
-
-    @property
-    def times(self):
-        return self._timestamps
-
-    def time_to_samples(self, t):
-        return math.ceil(t * self.f0)
-
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            key = slice(key, key+1, None)
-        if key.step is None:
-            key = slice(key.start, key.stop, 1)
-
-        duration = key.stop - key.start
-        key = slice(self.sample_at(key.start), self.sample_at(key.stop),
-                    key.step)
-        return self.__class__(self.channels, self.data[:, key], self.dt,
-                              self.times[key])
-
-class ContinuousSignal(Signal):
-    iid_signal = Signal
-
+class EvokedSignal(EpochedSignal):
     def __init__(self, channels, data, dt, timestamps):
         assert data.shape[2] == 1
         super().__init__(channels, data, dt, timestamps)
@@ -159,19 +210,6 @@ class ContinuousSignal(Signal):
             prev_channel = channel
             line = ax.axhline(c, linestyle="--", color="black")
             ax.annotate(channel.decode(), line.get_xydata()[0, :])
-
-    def epoch(self, intervals, time_shift=0.):
-        assert intervals.shape[1] == 2 and intervals.shape[0] >= 1
-
-        trials_data = []
-        for trial, (start, end) in enumerate(intervals):
-            start, end = self.sample_at(start), self.sample_at(end)
-            trials_data.append(self._data[:, start:end, :])
-        trials_samples = min(data.shape[1] for data in trials_data)
-        trials_data = [data[:, :trials_samples] for data in trials_data]
-        trials_data = np.concatenate(trials_data, axis=-1)
-        timestamps = np.arange(trials_data.shape[1]) * self.dt + time_shift
-        return self.iid_signal(self.channels, trials_data, self.dt, timestamps)
 
     def line_plot(self, ax=None, **kwargs):
         if ax is None:
@@ -206,3 +244,55 @@ class ContinuousSignal(Signal):
 
     def plot(self, *args, **kwargs):
         return self.line_plot(*args, **kwargs)
+
+class RawSignal(Signal):
+    epoched_signal = EpochedSignal
+
+    def __init__(self, channels: pd.DataFrame, data, dt, timestamps,
+                 channels_dim=0, time_dim=1):
+        assert len(data.shape) == 2
+        assert len(channels) == data.shape[channels_dim]
+        assert len(timestamps) == data.shape[time_dim]
+
+        self._channels_dim = channels_dim
+        self._time_dim = time_dim
+        super().__init__(channels, data, dt, timestamps)
+
+    def evoked(self, start=None, stop=None, step=None):
+        data, timestamps = self.get_data(None, slice(start, stop, step), None)
+        return self.epoched_signal(self.channels, data[:, :, np.newaxis],
+                                   self.dt, timestamps)
+
+    def epoch(self, intervals, time_shift=0.):
+        assert intervals.shape[1] == 2 and intervals.shape[0] >= 1
+
+        trials_data = []
+        for trial, (start, end) in enumerate(intervals):
+            trials_data.append(self[start:end])
+        trials_samples = min(data.shape[1] for data in trials_data)
+        trials_data = [data[:, :trials_samples] for data in trials_data]
+        trials_data = np.concatenate(trials_data, axis=-1)
+        timestamps = np.arange(trials_data.shape[1]) * self.dt + time_shift
+        return self.epoched_signal(self.channels, trials_data, self.dt,
+                                   timestamps)
+
+    def get_data(self, channels, times, trials):
+        channels, times, trials = self._data_slices(channels, times, trials)
+        assert trials == slice(None, None, None)
+
+        times = slice(self.sample_at(times.start), self.sample_at(times.stop),
+                      times.step)
+
+        keys = [None, None]
+        keys[self._channels_dim] = channels
+        keys[self._time_dim] = times
+        data = self._data[keys[0], keys[1]]
+        data = data.swapaxes(self._channels_dim, 0)
+        return data[:, :, np.newaxis]
+
+    def __getitem__(self, key):
+        return self.get_data(None, key, None)
+
+    @property
+    def num_trials(self):
+        return 1
