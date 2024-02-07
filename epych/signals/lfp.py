@@ -12,17 +12,18 @@ from ..spectrum import Spectrum
 
 class LocalFieldPotential(signal.Signal):
     def current_source_density(self, depth_column=None, method="StandardCSD"):
+        data = self.get_data(None, None, None)
         if method is None:
             csd_channels = []
             for i in range(2, self.num_channels - 2):
-                vi = (self.data[i-2] - 2 * self.data[i] + self.data[i+1])
+                vi = (data[i-2] - 2 * data[i] + data[i+1])
                 csd_channels.append(-0.4 * vi / (2 * 0.2 ** 2))
             csd_trials = np.stack(csd_channels, axis=0)
             channels = self.channels[2:-2]
         else:
             csd_trials = []
             for trial in range(self.num_trials):
-                neo_lfp = AnalogSignal(self.data[:, :, trial].transpose(),
+                neo_lfp = AnalogSignal(data[:, :, trial].transpose(),
                                        units="V",
                                        sampling_rate = self.f0 * pq.Hz)
                 if depth_column is not None and depth_column in self.channels:
@@ -44,7 +45,7 @@ class LocalFieldPotential(signal.Signal):
         return ContinuousLfp(erp.channels, erp.data, erp.dt, erp.times)
 
     def power_spectrum(self, dBs=True, relative=False, taper=None):
-        xs = self.data
+        xs = self.get_data(None, None, None)
         if taper is not None:
             xs = taper(xs.shape[1])[np.newaxis, :, np.newaxis] * xs
         xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
