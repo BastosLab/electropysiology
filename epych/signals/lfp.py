@@ -59,8 +59,12 @@ class LocalFieldPotential(signal.Signal):
             spectrum = spectrum.decibels()
         return spectrum
 
-class ContinuousLfp(LocalFieldPotential, signal.ContinuousSignal):
-    iid_signal = LocalFieldPotential
+class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
+    pass
 
+class EvokedLfp(LocalFieldPotential, signal.EvokedSignal):
     def plot(self, *args, **kwargs):
         return self.heatmap(*args, **kwargs)
+
+class RawLfp(LocalFieldPotential, signal.RawSignal):
+    epoched_signal = EpochedLfp
