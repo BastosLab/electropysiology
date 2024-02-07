@@ -132,13 +132,17 @@ class Recording(Sampling):
         if outer_epochs is not None:
             parent = self.intervals.loc[outer_epochs]
 
-            mask = np.concatenate([
-                np.where((parent["start"] < start) & (end < parent["end"]))[0]
-                for (start, end) in zip(targets["start"], targets["end"])
-            ])
-            epochs = parent.loc[mask]
+            mask = []
+            target_times = zip(targets["start"], targets["end"])
+            for t, (start, end) in enumerate(target_times):
+                idx = np.where((parent["start"] < start) & (end < parent["end"]))[0]
+                if len(idx):
+                    mask.append((targets.index[t], idx[0]))
+            mask = np.array(mask)
+            targets, epochs = targets.loc[mask[:, 0]], parent.loc[mask[:, 1]]
         else:
             epochs = targets
+        assert len(targets) == len(epochs)
         befores = (targets["start"].values - epochs["start"].values).mean() + before
         afters = (epochs["end"].values - targets["end"].values).mean() + after
         onsets, offsets = targets["start"] - befores, targets["end"] + afters
