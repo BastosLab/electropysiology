@@ -60,7 +60,7 @@ class Sampling(abc.Sequence):
                               columns=trials.index.values)
         trials = trials.assign(trial=[0]).set_index("trial")
 
-        signals = {k: v.erp() for k, v in self.signals.items()}
+        signals = {k: v.evoked() for k, v in self.signals.items()}
         return Recording(intervals, trials, self.units, **signals)
 
     def __getitem__(self, key):
