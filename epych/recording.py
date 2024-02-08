@@ -61,7 +61,7 @@ class Sampling(abc.Sequence):
         trials = trials.assign(trial=[0]).set_index("trial")
 
         signals = {k: v.evoked() for k, v in self.signals.items()}
-        return Recording(intervals, trials, self.units, **signals)
+        return EvokedSampling(intervals, trials, self.units, **signals)
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -121,10 +121,12 @@ class Sampling(abc.Sequence):
     def units(self):
         return self._units
 
-class Recording(Sampling):
+class RawRecording(Sampling):
     def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
                  units: dict[str, pq.UnitQuantity], **signals):
         assert len(trials) <= 1
+        for k, v in signals.items():
+            assert isinstance(v, signal.RawSignal)
         super().__init__(intervals, trials, units, **signals)
 
     def epoch(self, inner_epochs, outer_epochs=None, before=0., after=0.):
@@ -178,6 +180,14 @@ class Recording(Sampling):
         signals = {k: s.epoch(epoch_intervals, -befores) for k, s in
                    self.signals.items()}
         return Sampling(empty_intervals(), trials, self.units, **signals)
+
+class EvokedSampling(Sampling):
+    def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
+                 units: dict[str, pq.UnitQuantity], **signals):
+        assert len(trials) <= 1
+        for k, v in signals.items():
+            assert isinstance(v, signal.EvokedSignal)
+        super().__init__(intervals, trials, units, **signals)
 
     def plot(self, vmin=None, vmax=None, figure=None, figargs={}, **events):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
