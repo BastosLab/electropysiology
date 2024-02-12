@@ -33,11 +33,14 @@ class Sampling(abc.Sequence):
 
     def __add__(self, other):
         assert self.signals.keys() == other.signals.keys()
-        assert (self.trials == other.trials).all().all()
+        trials = self.trials.merge(
+            other.trials,
+            on=list(set(self.trials.columns) & set(other.trials.columns)) + ["trial"]
+        )
         assert self.units == other.units
         intervals = empty_intervals()
         signals = {k: self.signals[k] + other.signals[k] for k in self.signals}
-        return self.__class__(intervals, self.trials, self.units, **signals)
+        return self.__class__(intervals, trials, self.units, **signals)
 
     def baseline_correct(self, start, stop):
         return self.smap(lambda v: v.baseline_correct(start, stop))
@@ -103,11 +106,14 @@ class Sampling(abc.Sequence):
 
     def __sub__(self, other):
         assert self.signals.keys() == other.signals.keys()
-        assert (self.trials == other.trials).all().all()
+        trials = self.trials.merge(
+            other.trials,
+            on=list(set(self.trials.columns) & set(other.trials.columns)) + ["trial"]
+        )
         assert self.units == other.units
         intervals = empty_intervals()
         signals = {k: self.signals[k] - other.signals[k] for k in self.signals}
-        return self.__class__(intervals, self.trials, self.units, **signals)
+        return self.__class__(intervals, trials, self.units, **signals)
 
     def time_lock(self, time, before=0., after=0.):
         key = slice(time - before, time + after, None)
