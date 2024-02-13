@@ -115,9 +115,17 @@ class Sampling(abc.Sequence):
         signals = {k: self.signals[k] - other.signals[k] for k in self.signals}
         return self.__class__(intervals, trials, self.units, **signals)
 
-    def time_lock(self, time, before=0., after=0.):
-        key = slice(time - before, time + after, None)
-        return self[key]
+    def time_lock(self, times, before=0., after=0.):
+        if isinstance(times, float):
+            times = np.ones(len(self.trials)) * times
+        onsets, offsets = times - before, times + after
+        inner_intervals = self.intervals["start"].values >= onsets.mean() &\
+                          self.intervals["end"].values <= offsets.mean()
+        inner_intervals = self.intervals.loc[inner_intervals]
+        intervals = np.stack((onsets, offsets), axis=-1)
+        return self.__class__(inner_intervals, self.trials, self.units,
+                              **{k: v.epoch(intervals) for k, v
+                              in self.signals.items()})
 
     @property
     def trials(self):
