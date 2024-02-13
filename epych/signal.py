@@ -132,6 +132,18 @@ class EpochedSignal(Signal):
         data = self.data[0::n, :, :]
         return self.__class__(channels, data, self.dt, self.times)
 
+    def epoch(self, intervals, time_shift=0.):
+        assert intervals.shape == (self.num_trials, 2)
+
+        data = []
+        for trial, (start, end) in enumerate(intervals):
+            first, last = self.sample_at(start), self.sample_at(end)
+            data.append(self._data[:, first:last, trial])
+        time_length = min([trial.shape[1] for trial in data])
+        data = np.stack([trial[:, :time_length] for trial in data], axis=-1)
+        timestamps = np.arange(data.shape[1]) * self.dt + time_shift
+        return self.__class__(self.channels, data, self.dt, timestamps)
+
     def evoked(self):
         data = self.data.mean(-1, keepdims=True)
         return EvokedSignal(self.channels, data, self.dt, self.times)
