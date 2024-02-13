@@ -72,12 +72,8 @@ class Sampling(abc.Sequence):
         if key.step is None:
             key = slice(key.start, key.stop, 1)
 
-        onset, offset = key.start, key.stop
-        inner_intervals = self.intervals["start"].values >= onset &\
-                          self.intervals["end"].values <= offset
-        inner_intervals = self.intervals.loc[inner_intervals]
-        return self.__class__(inner_intervals, self.trials, self.units,
-                              **{k: v[key] for k, v in self.signals.items()})
+        intervals = np.repeat([key.start, key.stop], len(self.trials), axis=-1)
+        return self.time_lock(intervals)
 
     @property
     def intervals(self):
