@@ -2,11 +2,14 @@
 
 from collections import Counter
 import collections.abc as abc
+import copy
 import functools
 import math
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import pandas as pd
+import pickle
 import quantities as pq
 import typing
 
@@ -82,6 +85,19 @@ class Sampling(abc.Sequence):
     def __len__(self):
         return math.min(len(signal) for signal in self.signals.values())
 
+    def pickle(self, path):
+        assert os.path.isdir(path) or not os.path.exists(path)
+        os.makedirs(path, exist_ok=True)
+
+        self.intervals.to_csv(path + "/intervals.csv")
+        self.trials.to_csv(path + "/trials.csv")
+        for k, v in self.signals.items():
+            v.pickle(path + "/" + k)
+        other = copy.copy(self)
+        other._intervals = other._signals = other._trials = None
+        with open(path + "/sampling.pickle", mode="wb") as f:
+            pickle.dump(other, f)
+
     def select_trials(self, f, *columns):
         trial_entries = (list(self.trials[col].values) for col in columns)
         selections = np.array([f(*entry) for entry in zip(*trial_entries)])
@@ -130,6 +146,22 @@ class Sampling(abc.Sequence):
     @property
     def units(self):
         return self._units
+
+    @classmethod
+    def unpickle(cls, path):
+        assert os.path.isdir(path)
+
+        with open(path + "/sampling.pickle", mode="rb") as f:
+            self = pickle.load(f)
+        self._signals = {}
+        for entry in os.scandir(path):
+            if not entry.is_dir():
+                continue
+            self._signals[entry.name] =\
+                signal.EpochedSignal.unpickle(path + "/" + entry.name)
+        self._trials = pd.read_csv(path + "/trials.csv")
+        self._intervals = pd.read_csv(path + "/intervals.csv")
+        return self
 
 class RawRecording(Sampling):
     def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
