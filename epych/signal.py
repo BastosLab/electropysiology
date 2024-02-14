@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
 import collections.abc
+import copy
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
+import pickle
 import seaborn as sns
 import scipy
 
@@ -189,6 +192,19 @@ class EpochedSignal(Signal):
     def num_trials(self):
         return self.data.shape[2]
 
+    def pickle(self, path):
+        assert os.path.isdir(path) or not os.path.exists(path)
+        os.makedirs(path, exist_ok=True)
+
+        self.channels.to_csv(path + '/channels.csv')
+        scipy.io.savemat(path + '/epoched_signal.mat', {
+            "data": self.data, "timestamps": self.times
+        })
+        other = copy.copy(self)
+        other._channels = other._data = other._timestamps = None
+        with open(path + "/epoched_signal.pickle", mode="wb") as f:
+            pickle.dump(other, f)
+
     def select_channels(self, k, v):
         groups = self.channels.groupby(k).groups
         rows = [self.channels.index.get_loc(c) for c in groups[v]]
@@ -208,6 +224,19 @@ class EpochedSignal(Signal):
         timestamps = np.arange(num_samples) * self.dt
         data = self.data[:num_samples] - sig.data[:num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
+
+    @classmethod
+    def unpickle(cls, path):
+        assert os.path.isdir(path)
+
+        with open(path + "/epoched_signal.pickle", mode="rb") as f:
+            self = pickle.load(f)
+
+        arrays = scipy.io.loadmat(path + '/epoched_signal.mat')
+        self._timestamps = arrays['timestamps']
+        self._data = arrays['data']
+        self._channels = pd.read_csv(path + '/channels.csv')
+        return self
 
 class EvokedSignal(EpochedSignal):
     def __init__(self, channels, data, dt, timestamps):
