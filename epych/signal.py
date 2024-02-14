@@ -2,6 +2,7 @@
 
 import collections.abc
 import copy
+import hdf5storage as mat
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -197,7 +198,8 @@ class EpochedSignal(Signal):
         os.makedirs(path, exist_ok=True)
 
         self.channels.to_csv(path + '/channels.csv')
-        scipy.io.savemat(path + '/epoched_signal.mat', {
+
+        mat.savemat(path + '/epoched_signal.mat', {
             "data": self.data, "timestamps": self.times
         })
         other = copy.copy(self)
@@ -232,7 +234,7 @@ class EpochedSignal(Signal):
         with open(path + "/epoched_signal.pickle", mode="rb") as f:
             self = pickle.load(f)
 
-        arrays = scipy.io.loadmat(path + '/epoched_signal.mat')
+        arrays = mat.loadmat(path + '/epoched_signal.mat')
         self._timestamps = arrays['timestamps']
         self._data = arrays['data']
         self._channels = pd.read_csv(path + '/channels.csv')
