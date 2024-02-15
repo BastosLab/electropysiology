@@ -253,7 +253,8 @@ class EvokedSignal(EpochedSignal):
                 continue
             prev_channel = channel
             line = ax.axhline(c, linestyle="--", color="black")
-            ax.annotate(channel.decode(), line.get_xydata()[0, :])
+            channel = channel.decode() if isinstance(channel, bytes) else channel
+            ax.annotate(channel, line.get_xydata()[0, :])
 
     def line_plot(self, ax=None, **kwargs):
         if ax is None:
