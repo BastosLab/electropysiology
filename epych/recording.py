@@ -159,7 +159,7 @@ class Sampling(abc.Sequence):
                 continue
             self._signals[entry.name] =\
                 signal.EpochedSignal.unpickle(path + "/" + entry.name)
-        self._trials = pd.read_csv(path + "/trials.csv")
+        self._trials = pd.read_csv(path + "/trials.csv", index_col="trial")
         self._intervals = pd.read_csv(path + "/intervals.csv")
         return self
 
