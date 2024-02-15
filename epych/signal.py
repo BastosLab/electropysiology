@@ -237,7 +237,8 @@ class EpochedSignal(Signal):
         arrays = mat.loadmat(path + '/epoched_signal.mat')
         self._timestamps = arrays['timestamps']
         self._data = arrays['data']
-        self._channels = pd.read_csv(path + '/channels.csv')
+        self._channels = pd.read_csv(path + '/channels.csv', index_col=0)
+        self._channels["location"] = self._channels["location"].apply(eval)
         return self
 
 class EvokedSignal(EpochedSignal):
