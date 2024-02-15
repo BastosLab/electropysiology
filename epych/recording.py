@@ -231,11 +231,12 @@ class EvokedSampling(Sampling):
             assert isinstance(v, signal.EvokedSignal)
         super().__init__(intervals, trials, units, **signals)
 
-    def plot(self, vmin=None, vmax=None, figure=None, figargs={}, **events):
+    def plot(self, vmin=None, vmax=None, dpi=100, figure=None, figargs={},
+             **events):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
         fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
-                                       figsize=(timespan, 3), dpi=100)
+                                       figsize=(timespan, 3), dpi=dpi)
 
         for sig, ax in axes.items():
             self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
