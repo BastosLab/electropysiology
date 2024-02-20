@@ -34,7 +34,7 @@ class Spectrum:
         if ax is None:
             ax = plt.gca()
         if ftop is None:
-            ftop = self.freqs[-1]
+            ftop = self.freqs[0, -1]
 
         sns.heatmap(self.pows, ax=ax, linewidth=0, cmap='viridis', cbar=False,
                     robust=True)
