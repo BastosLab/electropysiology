@@ -240,10 +240,10 @@ class EvokedSampling(Sampling):
         for sig, ax in axes.items():
             self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
                                    vmax=vmax)
-            for (event, time) in events.items():
+            for (event, (time, color)) in events.items():
                 ymin, ymax = ax.get_ybound()
                 xtime = self.signals[sig].sample_at(time)
-                ax.vlines(xtime, ymin, ymax, colors='lightgreen',
+                ax.vlines(xtime, ymin, ymax, colors=color,
                           linestyles='dashed', label=event)
                 ax.annotate(event, (xtime + 0.005, ymax))
 
