@@ -208,11 +208,9 @@ class EpochedSignal(Signal):
         with open(path + "/epoched_signal.pickle", mode="wb") as f:
             pickle.dump(other, f)
 
-    def select_channels(self, k, v):
-        groups = self.channels.groupby(k).groups
-        rows = [self.channels.index.get_loc(c) for c in groups[v]]
-        return self.__class__(self.channels.take(rows),
-                              self.data[rows, :], self.dt, self.times)
+    def select_channels(self, mask):
+        return self.__class__(self.channels.loc[mask],
+                              self.data[mask, :], self.dt, self.times)
 
     def select_trials(self, trials):
         return self.__class__(self.channels, self.data[:, :, trials],
