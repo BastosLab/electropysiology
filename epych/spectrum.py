@@ -7,7 +7,8 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
-import seaborn as sns
+
+from . import plotting
 
 THETA_BAND = (1., 4.)
 ALPHA_BETA_BAND = (8., 30.)
@@ -43,14 +44,16 @@ class Spectrum:
     def freqs(self):
         return self._freqs
 
-    def heatmap(self, fbottom=0, ftop=None, ax=None):
+    def heatmap(self, fbottom=0, ftop=None, ax=None, fig=None):
         if ax is None:
             ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
         if ftop is None:
             ftop = self.freqs[0, -1]
 
-        sns.heatmap(self.pows, ax=ax, linewidth=0, cmap='viridis', cbar=False,
-                    robust=True)
+        plotting.heatmap(fig, ax, self.pows, "Power Spectral Density", vmin=0.,
+                         vmax=self.pows.max())
         ax.set_xlim(left=fbottom, right=ftop)
 
     def decibels(self):
