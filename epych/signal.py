@@ -249,13 +249,19 @@ class EvokedSignal(EpochedSignal):
 
     def annotate_channels(self, ax, key):
         prev_channel = ""
-        for c, channel in enumerate(self.channels[key].values):
-            if channel == prev_channel:
+        ctick_locs = []
+        cticks = []
+        for c, chan in enumerate(self.channels[key].values):
+            if chan == prev_channel:
                 continue
-            prev_channel = channel
-            line = ax.axhline(c, linestyle="--", color="black")
-            channel = channel.decode() if isinstance(channel, bytes) else channel
-            ax.annotate(channel, line.get_xydata()[0, :])
+            prev_channel = chan
+            ctick_locs.append(c)
+            cticks.append(chan.decode() if isinstance(chan, bytes) else chan)
+            # ax.axhline(c, linestyle="--", alpha=0.5, color="black")
+            # chan = chan.decode() if isinstance(chan, bytes) else chan
+            # ax.annotate(chan, line.get_xydata()[0, :])
+        ax.set_yticks(ctick_locs, cticks)
+        ax.grid(visible=True, linestyle=':', axis='y')
 
     def line_plot(self, ax=None, **kwargs):
         if ax is None:
@@ -263,7 +269,7 @@ class EvokedSignal(EpochedSignal):
         ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
-                origin="lower", channel_annotations="location"):
+                origin="lower", channel_ticks="location"):
         if ax is None:
             ax = plt.gca()
         if fig is None:
@@ -279,9 +285,8 @@ class EvokedSignal(EpochedSignal):
         xticks = ["%0.2f" % t for t in xticks]
         ax.set_xticks(xtick_locs, xticks)
 
-        if channel_annotations is not None and\
-           channel_annotations in self.channels.columns:
-            self.annotate_channels(ax, channel_annotations)
+        if channel_ticks is not None and channel_ticks in self.channels.columns:
+            self.annotate_channels(ax, channel_ticks)
 
     def plot(self, *args, **kwargs):
         return self.line_plot(*args, **kwargs)
