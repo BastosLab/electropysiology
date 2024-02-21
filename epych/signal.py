@@ -240,6 +240,23 @@ class EpochedSignal(Signal):
         self._channels["location"] = self._channels["location"].apply(eval)
         return self
 
+def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
+    assert isinstance(sa, EpochedSignal)
+    assert sa.__class__ == sb.__class__
+    assert (sa.channels == sb.channels).all().all()
+    assert sa.dt == sb.dt
+    assert len(sa) == len(sb)
+
+    num_samples = min(sa.data.shape[1], sb.data.shape[1])
+    timestamps = np.arange(num_samples) * sa.dt
+    ttest = scipy.stats.ttest_ind(sa.data[:, :num_samples],
+                                  sb.data[:, :num_samples], axis=-1,
+                                  equal_var=False, keepdims=True)
+    data = sa.data.mean(axis=-1, keepdims=True) -\
+           sb.data.mean(axis=-1, keepdims=True)
+    data *= ttest.pvalue < pvalue
+    return sa.__class__(sa.channels, data, sa.dt, timestamps).evoked()
+
 class EvokedSignal(EpochedSignal):
     def __init__(self, channels, data, dt, timestamps):
         assert data.shape[2] == 1
