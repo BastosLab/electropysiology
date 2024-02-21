@@ -9,8 +9,9 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
-import seaborn as sns
 import scipy
+
+from . import plotting
 
 class Signal(collections.abc.Sequence):
     def __init__(self, channels: pd.DataFrame, data, dt, timestamps):
@@ -269,13 +270,8 @@ class EvokedSignal(EpochedSignal):
             fig = plt.gcf()
 
         data = self.data.squeeze()
-        sns.heatmap(self.data.squeeze(), ax=ax, linewidth=0, cmap='viridis',
-                    cbar=True, vmin=vmin, vmax=vmax)
-        if origin == "lower":
-            ax.invert_yaxis()
-
-        if title is not None:
-            ax.set_title(title)
+        plotting.heatmap(fig, ax, data, cbar=True, title=title, vmin=vmin,
+                         vmax=vmax)
 
         num_xticks = len(ax.get_xticks())
         xtick_locs = np.linspace(0, data.shape[1], num_xticks)

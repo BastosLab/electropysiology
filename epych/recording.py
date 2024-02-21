@@ -154,11 +154,10 @@ class Sampling(abc.Sequence):
         with open(path + "/sampling.pickle", mode="rb") as f:
             self = pickle.load(f)
         self._signals = {}
-        for entry in os.scandir(path):
-            if not entry.is_dir():
-                continue
-            self._signals[entry.name] =\
-                signal.EpochedSignal.unpickle(path + "/" + entry.name)
+        ls = [entry.name for entry in os.scandir(path) if entry.is_dir()]
+        for entry in sorted(ls):
+            self._signals[entry] =\
+                signal.EpochedSignal.unpickle(path + "/" + entry)
         self._trials = pd.read_csv(path + "/trials.csv", index_col="trial")
         self._intervals = pd.read_csv(path + "/intervals.csv")
         return self
