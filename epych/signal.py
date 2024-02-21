@@ -117,10 +117,10 @@ class EpochedSignal(Signal):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
-        assert len(self) == len(sig)
+
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         timestamps = np.arange(num_samples) * self.dt
-        data = self.data[:num_samples] + sig.data[:num_samples]
+        data = self.data[:, :num_samples] + sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
     def baseline_correct(self, start, stop):
@@ -220,10 +220,10 @@ class EpochedSignal(Signal):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
-        assert len(self) == len(sig)
+
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         timestamps = np.arange(num_samples) * self.dt
-        data = self.data[:num_samples] - sig.data[:num_samples]
+        data = self.data[:, :num_samples] - sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
     @classmethod
