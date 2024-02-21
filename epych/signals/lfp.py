@@ -60,9 +60,15 @@ class LocalFieldPotential(signal.Signal):
         return spectrum
 
 class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
-    pass
+    def __init__(self, channels, data, dt, timestamps):
+        super(signal.EpochedSignal, self).__init__(channels, data, dt,
+                                                   timestamps)
 
 class EvokedLfp(LocalFieldPotential, signal.EvokedSignal):
+    def __init__(self, channels, data, dt, timestamps):
+        super(signal.EvokedSignal, self).__init__(channels, data, dt,
+                                                  timestamps)
+
     def plot(self, *args, **kwargs):
         return self.heatmap(*args, **kwargs)
 
