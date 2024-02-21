@@ -252,3 +252,19 @@ class EvokedSampling(Sampling):
         if figure is not None:
             fig.savefig(figure, **figargs)
         plt.close(fig)
+
+def trials_ttest(sa: Sampling, sb: Sampling, pvalue=0.05):
+    assert isinstance(sa, Sampling)
+    assert sa.__class__ == sb.__class__
+    assert sa.signals.keys() == sb.signals.keys()
+    trials = sa.trials.merge(
+        sb.trials,
+        on=list(set(sa.trials.columns) & set(sb.trials.columns)) + ["trial"]
+    )
+    assert sa.units == sb.units
+    intervals = empty_intervals()
+    signals = {
+        k: signal.trials_ttest(sa.signals[k], sb.signals[k], pvalue=pvalue)
+        for k in sa.signals
+    }
+    return sa.__class__(intervals, trials, sa.units, **signals)
