@@ -255,9 +255,6 @@ class EvokedSignal(EpochedSignal):
             prev_channel = chan
             ctick_locs.append(c)
             cticks.append(chan.decode() if isinstance(chan, bytes) else chan)
-            # ax.axhline(c, linestyle="--", alpha=0.5, color="black")
-            # chan = chan.decode() if isinstance(chan, bytes) else chan
-            # ax.annotate(chan, line.get_xydata()[0, :])
         ax.set_yticks(ctick_locs, cticks)
         ax.grid(visible=True, linestyle=':', axis='y')
 
