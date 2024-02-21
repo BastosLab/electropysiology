@@ -52,7 +52,7 @@ class LocalFieldPotential(signal.Signal):
         pows = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
         pows = pows[:, 0:xs.shape[1] // 2].real
 
-        spectrum = Spectrum(self.df, pows)
+        spectrum = Spectrum(self.df, pows, self.channels)
         if relative:
             spectrum = spectrum.relative()
         if dBs:
