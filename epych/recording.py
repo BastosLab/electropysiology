@@ -235,7 +235,8 @@ class EvokedSampling(Sampling):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
         fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
-                                       figsize=(timespan, 3), dpi=dpi)
+                                       figsize=(timespan, 3), dpi=dpi,
+                                       layout="constrained")
 
         for sig, ax in axes.items():
             self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
@@ -247,7 +248,6 @@ class EvokedSampling(Sampling):
                           linestyles='dashed', label=event)
                 ax.annotate(event, (xtime + 0.005, ymax))
 
-        fig.tight_layout()
         plt.show()
         if figure is not None:
             fig.savefig(figure, **figargs)
