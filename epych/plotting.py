@@ -8,8 +8,7 @@ def extents(f):
     return [f[0] - delta/2, f[-1] + delta/2]
 
 def imagesc(ax, cs, **kwargs):
-    x = np.linspace(0, cs.shape[1])
-    y = np.linspace(0, cs.shape[0])
+    x, y = np.linspace(0, cs.shape[1]), np.linspace(0, cs.shape[0])
     return ax.imshow(cs, aspect='auto', interpolation='none',
                      extent=extents(x) + extents(y), **kwargs)
 
