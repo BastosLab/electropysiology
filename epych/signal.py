@@ -245,10 +245,10 @@ def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
     assert sa.__class__ == sb.__class__
     assert (sa.channels == sb.channels).all().all()
     assert sa.dt == sb.dt
-    assert len(sa) == len(sb)
 
     num_samples = min(sa.data.shape[1], sb.data.shape[1])
-    timestamps = np.arange(num_samples) * sa.dt
+    assert sa.times[:num_samples] == sb.times[:num_samples]
+    timestamps = sa.times[:num_samples]
     ttest = scipy.stats.ttest_ind(sa.data[:, :num_samples],
                                   sb.data[:, :num_samples], axis=-1,
                                   equal_var=False, keepdims=True)
