@@ -231,7 +231,7 @@ class EvokedSampling(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def plot(self, vmin=None, vmax=None, dpi=100, figure=None, figargs={},
-             **events):
+             sigtitle=None, **events):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
         fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
@@ -239,7 +239,10 @@ class EvokedSampling(Sampling):
                                        layout="constrained")
 
         for sig, ax in axes.items():
-            self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
+            name = sig
+            if sigtitle is not None:
+                name = sigtitle(sig, self.signals[sig])
+            self.signals[sig].plot(ax=ax, fig=fig, title=name, vmin=vmin,
                                    vmax=vmax)
             for (event, (time, color)) in events.items():
                 ymin, ymax = ax.get_ybound()
