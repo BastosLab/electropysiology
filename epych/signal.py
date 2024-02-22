@@ -288,7 +288,7 @@ class EvokedSignal(EpochedSignal):
             fig = plt.gcf()
 
         data = self.data.squeeze()
-        plotting.heatmap(fig, ax, data, cbar=True, title=title, vmin=vmin,
+        plotting.heatmap(fig, ax, data, cbar=False, title=title, vmin=vmin,
                          vmax=vmax)
 
         num_xticks = len(ax.get_xticks())
