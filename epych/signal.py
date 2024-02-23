@@ -318,11 +318,6 @@ class RawSignal(Signal):
         self._time_dim = time_dim
         super().__init__(channels, data, dt, timestamps)
 
-    def evoked(self, start=None, stop=None, step=None):
-        data, timestamps = self.get_data(None, slice(start, stop, step), None)
-        return self.epoched_signal(self.channels, data[:, :, np.newaxis],
-                                   self.dt, timestamps)
-
     def epoch(self, intervals, time_shift=0.):
         assert intervals.shape[1] == 2 and intervals.shape[0] >= 1
 
