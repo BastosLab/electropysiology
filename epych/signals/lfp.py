@@ -40,10 +40,6 @@ class LocalFieldPotential(signal.Signal):
             channels = self.channels
         return self.__class__(channels, csd_trials, self.dt, self.times)
 
-    def evoked(self):
-        erp = super().evoked()
-        return EvokedLfp(erp.channels, erp.data, erp.dt, erp.times)
-
     def power_spectrum(self, dBs=True, relative=False, taper=None):
         xs = self.get_data(None, None, None)
         if taper is not None:
