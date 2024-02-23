@@ -275,9 +275,11 @@ class EvokedSignal(EpochedSignal):
         ax.set_yticks(ctick_locs, cticks)
         ax.grid(visible=True, linestyle=':', axis='y')
 
-    def line_plot(self, ax=None, **kwargs):
+    def line_plot(self, ax=None, fig=None, **kwargs):
         if ax is None:
             ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
         ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
