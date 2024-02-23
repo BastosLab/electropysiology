@@ -69,8 +69,8 @@ class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
 
 class EvokedLfp(LocalFieldPotential, signal.EvokedSignal):
     def __init__(self, channels, data, dt, timestamps):
-        super(signal.EvokedSignal, self).__init__(channels, data, dt,
-                                                  timestamps)
+        assert data.shape[2] == 1
+        super(EvokedLfp, self).__init__(channels, data, dt, timestamps)
 
     def plot(self, *args, **kwargs):
         return self.heatmap(*args, **kwargs)
