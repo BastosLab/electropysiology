@@ -11,6 +11,11 @@ from .. import signal
 from ..spectrum import Spectrum
 
 class LocalFieldPotential(signal.Signal):
+    def channel_depths(self, column=None):
+        if column is not None and column in self.channels:
+            return self.channels[column].values
+        return np.arange(len(self.channels))
+
     def current_source_density(self, depth_column=None, method="StandardCSD"):
         data = self.get_data(None, None, None)
         if method is None:
