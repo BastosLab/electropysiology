@@ -77,3 +77,14 @@ class EvokedLfp(LocalFieldPotential, signal.EvokedSignal):
 
 class RawLfp(LocalFieldPotential, signal.RawSignal):
     epoched_signal = EpochedLfp
+
+    def __init__(self, channels, data, dt, timestamps, channels_dim=0,
+                 time_dim=1):
+        assert len(data.shape) == 2
+        assert len(channels) == data.shape[channels_dim]
+        assert len(timestamps) == data.shape[time_dim]
+
+        self._channels_dim = channels_dim
+        self._time_dim = time_dim
+        super(RawLfp, self).__init__(channels, data, dt, timestamps,
+                                     channels_dim, time_dim)
