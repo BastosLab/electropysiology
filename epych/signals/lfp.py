@@ -57,8 +57,15 @@ class LocalFieldPotential(signal.Signal):
 
 class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
     def __init__(self, channels, data, dt, timestamps):
-        super(signal.EpochedSignal, self).__init__(channels, data, dt,
-                                                   timestamps)
+        assert len(data.shape) == 3
+        assert len(channels) == data.shape[0]
+        assert len(timestamps) == data.shape[1]
+
+        super(EpochedLfp, self).__init__(channels, data, dt, timestamps)
+
+    def evoked(self):
+        erp = super().evoked()
+        return EvokedLfp(erp.channels, erp.data, erp.dt, erp.times)
 
 class EvokedLfp(LocalFieldPotential, signal.EvokedSignal):
     def __init__(self, channels, data, dt, timestamps):
