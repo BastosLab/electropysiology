@@ -72,6 +72,10 @@ class EvokedLfp(LocalFieldPotential, signal.EvokedSignal):
         assert data.shape[2] == 1
         super(EvokedLfp, self).__init__(channels, data, dt, timestamps)
 
+    def evoked(self):
+        erp = super().evoked()
+        return EvokedLfp(erp.channels, erp.data, erp.dt, erp.times)
+
     def plot(self, *args, **kwargs):
         return self.heatmap(*args, **kwargs)
 
