@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from elephant.parallel import ProcessPoolExecutor
 from elephant.current_source_density import estimate_csd
 import matplotlib.pyplot as plt
 from neo import AnalogSignal
@@ -27,21 +28,18 @@ class LocalFieldPotential(signal.Signal):
             channels = self.channels[2:-2]
         else:
             csd_trials = []
+            depths = self.channel_depths(depth_column)[:, np.newaxis] * pq.mm
+            neo_lfps = []
             for trial in range(self.num_trials):
                 neo_lfp = AnalogSignal(data[:, :, trial].transpose(),
                                        units="V",
                                        sampling_rate = self.f0 * pq.Hz)
-                if depth_column is not None and depth_column in self.channels:
-                    channel_depths = self.channels[depth_column].values
-                else:
-                    channel_depths = np.arange(len(self.channels))
-                neo_lfp.annotate(
-                    coordinates=channel_depths[:, np.newaxis] * pq.mm
-                )
-                csd_trials.append(np.array(
-                    estimate_csd(neo_lfp, method=method).transpose()
-                ))
-            csd_trials = np.stack(csd_trials, axis=-1)
+                neo_lfp.annotate(coordinates=depths)
+                neo_lfps.append(neo_lfp)
+            csd_trials = ProcessPoolExecutor().execute(estimate_csd, neo_lfps,
+                                                       method=method)
+            csd_trials = np.stack([np.array(t.transpose()) for t in csd_trials],
+                                  axis=-1)
             channels = self.channels
         return self.__class__(channels, csd_trials, self.dt, self.times)
 
