@@ -231,14 +231,18 @@ class EvokedSampling(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def plot(self, vmin=None, vmax=None, dpi=100, figure=None, figargs={},
-             **events):
+             sigtitle=None, **events):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
         fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
-                                       figsize=(timespan, 3), dpi=dpi)
+                                       figsize=(timespan, 3), dpi=dpi,
+                                       layout="constrained")
 
         for sig, ax in axes.items():
-            self.signals[sig].plot(ax=ax, fig=fig, title=sig, vmin=vmin,
+            name = sig
+            if sigtitle is not None:
+                name = sigtitle(sig, self.signals[sig])
+            self.signals[sig].plot(ax=ax, fig=fig, title=name, vmin=vmin,
                                    vmax=vmax)
             for (event, (time, color)) in events.items():
                 ymin, ymax = ax.get_ybound()
@@ -247,8 +251,23 @@ class EvokedSampling(Sampling):
                           linestyles='dashed', label=event)
                 ax.annotate(event, (xtime + 0.005, ymax))
 
-        fig.tight_layout()
         plt.show()
         if figure is not None:
             fig.savefig(figure, **figargs)
         plt.close(fig)
+
+def trials_ttest(sa: Sampling, sb: Sampling, pvalue=0.05):
+    assert isinstance(sa, Sampling)
+    assert sa.__class__ == sb.__class__
+    assert sa.signals.keys() == sb.signals.keys()
+    trials = sa.trials.merge(
+        sb.trials,
+        on=list(set(sa.trials.columns) & set(sb.trials.columns)) + ["trial"]
+    )
+    assert sa.units == sb.units
+    intervals = empty_intervals()
+    signals = {
+        k: signal.trials_ttest(sa.signals[k], sb.signals[k], pvalue=pvalue)
+        for k in sa.signals
+    }
+    return sa.__class__(intervals, trials, sa.units, **signals)

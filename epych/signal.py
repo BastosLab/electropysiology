@@ -117,10 +117,10 @@ class EpochedSignal(Signal):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
-        assert len(self) == len(sig)
+
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         timestamps = np.arange(num_samples) * self.dt
-        data = self.data[:num_samples] + sig.data[:num_samples]
+        data = self.data[:, :num_samples] + sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
     def baseline_correct(self, start, stop):
@@ -220,10 +220,10 @@ class EpochedSignal(Signal):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
-        assert len(self) == len(sig)
+
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         timestamps = np.arange(num_samples) * self.dt
-        data = self.data[:num_samples] - sig.data[:num_samples]
+        data = self.data[:, :num_samples] - sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
     @classmethod
@@ -240,6 +240,23 @@ class EpochedSignal(Signal):
         self._channels["location"] = self._channels["location"].apply(eval)
         return self
 
+def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
+    assert isinstance(sa, EpochedSignal)
+    assert sa.__class__ == sb.__class__
+    assert (sa.channels == sb.channels).all().all()
+    assert sa.dt == sb.dt
+
+    num_samples = min(sa.data.shape[1], sb.data.shape[1])
+    np.allclose(sa.times[:num_samples], sb.times[:num_samples], sa.dt, sb.dt)
+    timestamps = (sa.times[:num_samples] + sb.times[:num_samples]) / 2
+    ttest = scipy.stats.ttest_ind(sa.data[:, :num_samples],
+                                  sb.data[:, :num_samples], axis=-1,
+                                  equal_var=False, keepdims=True)
+    data = sa.data[:, :num_samples].mean(axis=-1, keepdims=True) -\
+           sb.data[:, :num_samples].mean(axis=-1, keepdims=True)
+    data *= ttest.pvalue < pvalue
+    return sa.__class__(sa.channels, data, sa.dt, timestamps).evoked()
+
 class EvokedSignal(EpochedSignal):
     def __init__(self, channels, data, dt, timestamps):
         assert data.shape[2] == 1
@@ -255,15 +272,14 @@ class EvokedSignal(EpochedSignal):
             prev_channel = chan
             ctick_locs.append(c)
             cticks.append(chan.decode() if isinstance(chan, bytes) else chan)
-            # ax.axhline(c, linestyle="--", alpha=0.5, color="black")
-            # chan = chan.decode() if isinstance(chan, bytes) else chan
-            # ax.annotate(chan, line.get_xydata()[0, :])
         ax.set_yticks(ctick_locs, cticks)
         ax.grid(visible=True, linestyle=':', axis='y')
 
-    def line_plot(self, ax=None, **kwargs):
+    def line_plot(self, ax=None, fig=None, **kwargs):
         if ax is None:
             ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
         ax.plot(self.times, self.data.T.squeeze(), **kwargs)
 
     def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
@@ -274,7 +290,7 @@ class EvokedSignal(EpochedSignal):
             fig = plt.gcf()
 
         data = self.data.squeeze()
-        plotting.heatmap(fig, ax, data, cbar=True, title=title, vmin=vmin,
+        plotting.heatmap(fig, ax, data, cbar=False, title=title, vmin=vmin,
                          vmax=vmax)
 
         num_xticks = len(ax.get_xticks())
@@ -301,11 +317,6 @@ class RawSignal(Signal):
         self._channels_dim = channels_dim
         self._time_dim = time_dim
         super().__init__(channels, data, dt, timestamps)
-
-    def evoked(self, start=None, stop=None, step=None):
-        data, timestamps = self.get_data(None, slice(start, stop, step), None)
-        return self.epoched_signal(self.channels, data[:, :, np.newaxis],
-                                   self.dt, timestamps)
 
     def epoch(self, intervals, time_shift=0.):
         assert intervals.shape[1] == 2 and intervals.shape[0] >= 1
