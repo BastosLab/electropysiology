@@ -6,10 +6,9 @@ import matplotlib.pyplot as plt
 from neo import AnalogSignal
 import numpy as np
 import quantities as pq
-import scipy.fft as fft
 
 from .. import signal
-from ..spectrum import Spectrum
+from ..statistics.spectrum import PowerSpectrum
 
 class LocalFieldPotential(signal.Signal):
     def channel_depths(self, column=None):
@@ -42,21 +41,6 @@ class LocalFieldPotential(signal.Signal):
                                   axis=-1)
             channels = self.channels
         return self.__class__(channels, csd_trials, self.dt, self.times)
-
-    def power_spectrum(self, dBs=True, relative=False, taper=None):
-        xs = self.get_data(None, None, None)
-        if taper is not None:
-            xs = taper(xs.shape[1])[np.newaxis, :, np.newaxis] * xs
-        xf = fft.rfft(xs - xs.mean(axis=1, keepdims=True), axis=1)
-        pows = (2 * self.dt ** 2 / self.T) * (xf * xf.conj())
-        pows = pows[:, 0:xs.shape[1] // 2].real
-
-        spectrum = Spectrum(self.df, pows, self.channels)
-        if relative:
-            spectrum = spectrum.relative()
-        if dBs:
-            spectrum = spectrum.decibels()
-        return spectrum
 
 class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
     def __init__(self, channels, data, dt, timestamps):
