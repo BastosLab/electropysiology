@@ -15,7 +15,7 @@ THETA_BAND = (1., 4.)
 ALPHA_BETA_BAND = (8., 30.)
 GAMMA_BAND = (50., 150.)
 
-class PowerSpectrum(statistic.Statistic[signal.EpochedSignal]):
+class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def __init__(self, df, channels, f0, taper=None, data=None):
         self._df = df
         self._freqs = np.arange(0, f0, df)[np.newaxis, :]
