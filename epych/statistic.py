@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from collections.abc import Iterable
 import copy
 import hdf5storage as mat
 import matplotlib.pyplot as plt
@@ -7,24 +8,38 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
+import typing
+from typing import Generic, Optional, TypeVar
 
 from . import signal
 
-class Statistic:
-    def __init__(self, channels, iid_shape, values=None):
+T = TypeVar('T')
+
+class Statistic(Generic[T]):
+    def __init__(self, channels: pd.DataFrame, iid_shape,
+                 data: Optional[np.ndarray]=None):
         assert isinstance(channels, pd.DataFrame)
         stat_shape = (len(channels), *iid_shape)
-        assert values is None or values.shape[:len(stat_shape)] == stat_shape
+        assert data is None or data.shape[:len(stat_shape)] == stat_shape
 
         self._channels = channels
-        self._vals = values
+        self._data = data
+
+    def apply(self, element: tuple[T, ...]) -> np.ndarray:
+        raise NotImplementedError
+
+    def calculate(self, elements: Iterable[tuple[T, ...]]):
+        for element in elements:
+            self._data = self.apply(element)
+        return self._data
 
     @property
     def channels(self):
         return self._channels
 
-    def evoked(self):
-        raise NotImplementedError
+    @property
+    def data(self):
+        return self._data
 
     def fmap(self, f):
         return self.__class__(self.channels, self.iid_shape, f(self.values))
@@ -60,10 +75,3 @@ class Statistic:
         self._channels = pd.read_csv(path + "/channels.csv", index_col=0)
         self._channels["location"] = self._channels["location"].apply(eval)
         return self
-
-    def update(self, s: signal.EpochedSignal, **kwargs):
-        raise NotImplementedError
-
-    @property
-    def values(self):
-        return self._vals
