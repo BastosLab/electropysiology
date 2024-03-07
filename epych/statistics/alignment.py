@@ -9,22 +9,18 @@ import re
 from .. import signal, statistic
 
 class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
-    def __init__(self, area="VIS", column="location", data=None):
-        self._area = area
+    def __init__(self, column="location", data=None):
         self._column = column
         super().__init__((1,), data=data)
 
     def apply(self, element: signal.Signal):
-        area_mask = [self._area in loc.decode() for loc in
-                     element.channels[self._column].values]
-        area_channels = element.channels.loc[area_mask]
         area_l4 = os.path.commonprefix([l.decode() for l
-                                        in area_channels.location]) + "4"
+                                        in element.channels.location]) + "4"
         l4_mask = [area_l4 in loc.decode() for loc in element.channels.location]
         l4_center = round(np.median(element.channels.loc[l4_mask].index))
 
-        sample = np.array((area_channels.index[0], l4_center,
-                           area_channels.index[-1]))[np.newaxis, :]
+        sample = np.array((element.channels.index[0], l4_center,
+                           element.channels.index[-1]))[np.newaxis, :]
         if self.data is None:
             return sample
         return np.concatenate((self.data, sample), axis=0)
