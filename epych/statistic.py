@@ -34,7 +34,7 @@ class Statistic(Generic[T]):
         return self._data
 
     def fmap(self, f):
-        return self.__class__(self.iid_shape, f(self.values))
+        return self.__class__(self.iid_shape, f(self.data))
 
     @property
     def iid_shape(self):

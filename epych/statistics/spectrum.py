@@ -1,12 +1,7 @@
 #!/usr/bin/python3
 
-import copy
-import hdf5storage as mat
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import pandas as pd
-import pickle
 import scipy.fft as fft
 
 from .. import plotting, signal, statistic
