@@ -131,10 +131,10 @@ class Summary:
         for element in elements:
             for k, v in element.signals.items():
                 key = k + "/" + self.signal_key(v)
-                if key not in self._stats:
-                    self._stats[key] = self.stat()
-                self._stats[key].calculate([v])
-        return self._stats
+                if key not in self.stats:
+                    self.stats[key] = self.stat()
+                self.stats[key].update(v)
+        return self.stats
 
     def pickle(self, path):
         assert os.path.isdir(path) or not os.path.exists(path)
