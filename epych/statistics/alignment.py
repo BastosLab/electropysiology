@@ -40,3 +40,12 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
 
     def fmap(self, f):
         return self.__class__(self._area, self._column, f(self.data))
+
+class AlignmentSummary(statistic.Summary):
+    def __init__(self):
+        super().__init__(LaminarAlignment)
+
+    def signal_key(self, sig: signal.Signal):
+        return os.path.commonprefix([
+            loc.decode() for loc in sig.channels.location.values
+        ])
