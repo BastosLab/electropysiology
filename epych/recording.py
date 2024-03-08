@@ -111,10 +111,17 @@ class Sampling(abc.Sequence):
     def signals(self):
         return self._signals
 
-    def smap(self, f):
-        return self.__class__(self.intervals, self.trials, self.units, **{
-            k: f(v) for k, v in self.signals.items()
-        })
+    def smap(self, f, keys=False):
+        if keys:
+            signals = {
+                k: f(k, v) for k, v in self.signals.items()
+            }
+        else:
+            signals = {
+                k: f(v) for k, v in self.signals.items()
+            }
+        return self.__class__(self.intervals, self.trials, self.units,
+                              **signals)
 
     def __sub__(self, other):
         assert self.signals.keys() == other.signals.keys()
