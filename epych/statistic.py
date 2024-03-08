@@ -13,7 +13,7 @@ from typing import Generic, Optional, TypeVar
 
 from . import signal, recording
 
-T = TypeVar('T')
+T = TypeVar('T', bound=signal.Signal)
 
 class Statistic(Generic[T]):
     def __init__(self, iid_shape, data: Optional[np.ndarray]=None):
