@@ -13,6 +13,12 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
         self._column = column
         super().__init__((1,), data=data)
 
+    def align(self, i: int, sig: signal.EpochedSignal) -> signal.EpochedSignal:
+        low, l4, high = self.data[i]
+        alignment_mask = [c in range(low, high+1) for c
+                          in range(len(sig.channels))]
+        return sig.select_channels(alignment_mask)
+
     def apply(self, element: signal.Signal):
         area_l4 = os.path.commonprefix([l.decode() for l
                                         in element.channels.location]) + "4"
@@ -34,10 +40,10 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
 
     def result(self):
         l4_channels = self._data[:, 1]
-        superficial_distance = (l4_channels - self._data[:, 0]).mean()
-        deep_distance = (self._data[:, 2] - l4_channels).mean()
-        return np.array([l4_channels - superficial_distance, l4_channels,
-                         l4_channels + deep_distance]).T.round()
+        low_distance = (l4_channels - self._data[:, 0]).mean()
+        high_distance = (self._data[:, 2] - l4_channels).mean()
+        return np.array([l4_channels - low_distance, l4_channels,
+                         l4_channels + high_distance]).T.round()
 
 class AlignmentSummary(statistic.Summary):
     def __init__(self):
