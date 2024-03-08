@@ -53,3 +53,7 @@ class AlignmentSummary(statistic.Summary):
         return os.path.commonprefix([
             loc.decode() for loc in sig.channels.location.values
         ])
+
+    @classmethod
+    def unpickle(cls, path):
+        return statistic.Summary.unpickle(path, LaminarAlignment)
