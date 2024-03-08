@@ -26,8 +26,8 @@ class Statistic(Generic[T]):
 
     def calculate(self, elements: Iterable[tuple[T, ...]]):
         for element in elements:
-            self._data = self.apply(element)
-        return self._data
+            self.update(element)
+        return self.result()
 
     @property
     def data(self):
@@ -53,6 +53,12 @@ class Statistic(Generic[T]):
         pickle_filename = path + ("/%s.pickle" % self.__class__.__name__)
         with open(pickle_filename, mode="wb") as f:
             pickle.dump(other, f)
+
+    def result(self):
+        return self.data
+
+    def update(self, element: tuple[T, ...]) -> np.ndarray:
+        self._data = self.apply(element)
 
     @classmethod
     def unpickle(cls, path):
