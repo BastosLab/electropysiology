@@ -209,7 +209,11 @@ class EpochedSignal(Signal):
             pickle.dump(other, f)
 
     def select_channels(self, mask):
-        return self.__class__(self.channels.loc[mask],
+        channels = self.channels.copy()
+        if "channel" not in channels.columns:
+            channels.insert(len(channels.columns), "channel",
+                            list(range(len(self.channels))))
+        return self.__class__(channels.loc[mask],
                               self.data[mask, :], self.dt, self.times)
 
     def select_trials(self, trials):
