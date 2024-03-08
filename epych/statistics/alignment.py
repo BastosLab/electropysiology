@@ -4,6 +4,7 @@ from collections.abc import Iterable
 import numpy as np
 import os
 import pandas as pd
+import pickle
 import re
 
 from .. import signal, statistic
@@ -56,4 +57,17 @@ class AlignmentSummary(statistic.Summary):
 
     @classmethod
     def unpickle(cls, path):
-        return statistic.Summary.unpickle(path, LaminarAlignment)
+        assert os.path.isdir(path)
+
+        with open(path + "/summary.pickle", mode="rb") as f:
+            self = pickle.load(f)
+        self._stats = {}
+        ls = [entry.name for entry in os.scandir(path) if entry.is_dir()]
+        for entry in sorted(ls):
+            entry_ls = [area.name for area in os.scandir(path + "/" + entry)
+                        if area.is_dir()]
+            for area in entry_ls:
+                self._stats[entry + "/" + area] =\
+                    LaminarAlignment.unpickle(path + "/" + entry + "/" + area)
+        self._statistic = LaminarAlignment
+        return self
