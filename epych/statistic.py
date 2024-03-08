@@ -164,12 +164,9 @@ class Summary:
 
         with open(path + "/summary.pickle", mode="rb") as f:
             self = pickle.load(f)
-        self._signals = {}
+        self._stats = {}
         ls = [entry.name for entry in os.scandir(path) if entry.is_dir()]
         for entry in sorted(ls):
-            self._signals[entry] =\
-                signal.EpochedSignal.unpickle(path + "/" + entry)
-        self._statistic = statistic_cls.unpickle(
-            path + "/" + statistic_cls.__name__
-        )
+            self._stats[entry] = statistic_cls.unpickle(path + "/" + entry)
+        self._statistic = statistic_cls
         return self
