@@ -29,17 +29,15 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
             return sample
         return np.concatenate((self.data, sample), axis=0)
 
-    def calculate(self, elements: Iterable[signal.Signal]):
-        for element in elements:
-            self._data = self.apply(element)
+    def fmap(self, f):
+        return self.__class__(self._area, self._column, f(self.data))
+
+    def result(self):
         l4_channels = self._data[:, 1]
         superficial_distance = (l4_channels - self._data[:, 0]).mean()
         deep_distance = (self._data[:, 2] - l4_channels).mean()
         return np.array([l4_channels - superficial_distance, l4_channels,
                          l4_channels + deep_distance]).T.round()
-
-    def fmap(self, f):
-        return self.__class__(self._area, self._column, f(self.data))
 
 class AlignmentSummary(statistic.Summary):
     def __init__(self):
