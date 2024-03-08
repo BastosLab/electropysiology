@@ -46,21 +46,22 @@ class Statistic(Generic[T]):
 
         arrays = {k: v for k, v in self.__dict__.items()
                   if isinstance(v, np.ndarray)}
-        mat.savemat(path + ("/%s.mat" % self.__class__.name), arrays)
+        mat.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
         other = copy.copy(self)
         for k in arrays:
             setattr(other, k, None)
-        with open(path + ("/%s.pickle" % self.__class__.name), mode="wb") as f:
+        pickle_filename = path + ("/%s.pickle" % self.__class__.__name__)
+        with open(pickle_filename, mode="wb") as f:
             pickle.dump(other, f)
 
     @classmethod
     def unpickle(cls, path):
         assert os.path.isdir(path)
 
-        with open(path + ("/%s.pickle" % self.__class__.name), mode="rb") as f:
+        with open(path + ("/%s.pickle" % cls.__name__), mode="rb") as f:
             self = pickle.load(f)
 
-        arrays = mat.loadmat(path + ("/%s.mat" % self.__class__.name))
+        arrays = mat.loadmat(path + ("/%s.mat" % cls.__name__))
         for k in arrays:
             setattr(self, k, arrays[k])
         return self
@@ -88,11 +89,12 @@ class ChannelwiseStatistic(Statistic[T]):
         self.channels.to_csv(path + "/channels.csv")
         arrays = {k: v for k, v in self.__dict__.items()
                   if isinstance(v, np.ndarray)}
-        mat.savemat(path + ("/%s.mat" % self.__class__.name), arrays)
+        mat.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
         other = copy.copy(self)
         for k in arrays:
             setattr(other, k, None)
-        with open(path + ("/%s.pickle" % self.__class__.name), mode="wb") as f:
+        pickle_filename = path + ("/%s.pickle" % self.__class__.__name__)
+        with open(pickle_filename, mode="wb") as f:
             pickle.dump(other, f)
 
     def select_channels(self, mask):
@@ -103,7 +105,7 @@ class ChannelwiseStatistic(Statistic[T]):
     def unpickle(cls, path):
         assert os.path.isdir(path)
 
-        with open(path + ("/%s.pickle" % self.__class__.name), mode="rb") as f:
+        with open(path + ("/%s.pickle" % cls.__name__), mode="rb") as f:
             self = pickle.load(f)
 
         arrays = mat.loadmat(path + ("/%s.mat" % self.__class__.name))
