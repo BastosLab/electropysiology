@@ -47,9 +47,12 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
         return ((l4_channels - low_distance).round(), l4_channels.round(),
                 (l4_channels + high_distance).round())
 
+def laminar_alignment(sig):
+    return LaminarAlignment()
+
 class AlignmentSummary(statistic.Summary):
     def __init__(self):
-        super().__init__(lambda sig: LaminarAlignment())
+        super().__init__(laminar_alignment)
 
     @classmethod
     def unpickle(cls, path):
