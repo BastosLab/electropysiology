@@ -148,7 +148,9 @@ class Summary:
             pickle.dump(other, f)
 
     def signal_key(self, sig: signal.Signal):
-        raise NotImplementedError
+        return os.path.commonprefix([
+            loc.decode() for loc in sig.channels.location.values
+        ])
 
     @property
     def stat(self):
