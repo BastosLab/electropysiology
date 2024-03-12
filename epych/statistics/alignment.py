@@ -15,8 +15,8 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
         super().__init__((1,), data=data)
 
     def align(self, i: int, sig: signal.EpochedSignal) -> signal.EpochedSignal:
-        low, l4, high = self.data[i]
-        alignment_mask = [c in range(low, high+1) for c
+        low, l4, high = self.result()[i]
+        alignment_mask = [c in range(int(low), int(high)+1) for c
                           in range(len(sig.channels))]
         return sig.select_channels(alignment_mask)
 
