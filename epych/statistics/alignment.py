@@ -20,7 +20,7 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
                           in range(len(sig.channels))]
         return sig.select_channels(alignment_mask)
 
-    def apply(self, element: signal.Signal):
+    def apply(self, element: signal.EpochedSignal):
         area_l4 = os.path.commonprefix([l.decode() for l
                                         in element.channels.location]) + "4"
         l4_mask = [area_l4 in loc.decode() for loc in element.channels.location]
