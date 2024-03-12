@@ -48,12 +48,7 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
 
 class AlignmentSummary(statistic.Summary):
     def __init__(self):
-        super().__init__(LaminarAlignment)
-
-    def signal_key(self, sig: signal.Signal):
-        return os.path.commonprefix([
-            loc.decode() for loc in sig.channels.location.values
-        ])
+        super().__init__(lambda sig: LaminarAlignment())
 
     @classmethod
     def unpickle(cls, path):
