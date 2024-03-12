@@ -26,8 +26,8 @@ class Statistic(Generic[T]):
 
     def calculate(self, elements: Iterable[tuple[T, ...]]):
         for element in elements:
-            self._data = self.apply(element)
-        return self._data
+            self.update(element)
+        return self.result()
 
     @property
     def data(self):
@@ -53,6 +53,12 @@ class Statistic(Generic[T]):
         pickle_filename = path + ("/%s.pickle" % self.__class__.__name__)
         with open(pickle_filename, mode="wb") as f:
             pickle.dump(other, f)
+
+    def result(self):
+        return self.data
+
+    def update(self, element: tuple[T, ...]) -> np.ndarray:
+        self._data = self.apply(element)
 
     @classmethod
     def unpickle(cls, path):
@@ -125,10 +131,10 @@ class Summary:
         for element in elements:
             for k, v in element.signals.items():
                 key = k + "/" + self.signal_key(v)
-                if key not in self._stats:
-                    self._stats[key] = self.stat()
-                self._stats[key].calculate([v])
-        return self._stats
+                if key not in self.stats:
+                    self.stats[key] = self.stat()
+                self.stats[key].update(v)
+        return self.stats
 
     def pickle(self, path):
         assert os.path.isdir(path) or not os.path.exists(path)
@@ -158,12 +164,9 @@ class Summary:
 
         with open(path + "/summary.pickle", mode="rb") as f:
             self = pickle.load(f)
-        self._signals = {}
+        self._stats = {}
         ls = [entry.name for entry in os.scandir(path) if entry.is_dir()]
         for entry in sorted(ls):
-            self._signals[entry] =\
-                signal.EpochedSignal.unpickle(path + "/" + entry)
-        self._statistic = statistic_cls.unpickle(
-            path + "/" + statistic_cls.__name__
-        )
+            self._stats[entry] = statistic_cls.unpickle(path + "/" + entry)
+        self._statistic = statistic_cls
         return self
