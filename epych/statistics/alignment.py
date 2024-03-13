@@ -56,8 +56,8 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
 
     def result(self):
         l4_channels = self._data[:, 1]
-        low_distance = (l4_channels - self._data[:, 0]).mean()
-        high_distance = (self._data[:, 2] - l4_channels).mean()
+        low_distance = (l4_channels - self._data[:, 0]).min()
+        high_distance = (self._data[:, 2] - l4_channels).min()
         return np.array([l4_channels - low_distance, l4_channels,
                          l4_channels + high_distance]).T.round()
 
