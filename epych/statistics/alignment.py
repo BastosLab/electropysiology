@@ -12,13 +12,17 @@ from .. import signal, statistic
 class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
     def __init__(self, column="location", data=None):
         self._column = column
+        self._num_times = None
         super().__init__((1,), data=data)
 
     def align(self, i: int, sig: signal.EpochedSignal) -> signal.EpochedSignal:
         low, l4, high = self.result()[i]
-        alignment_mask = [c in range(int(low), int(high)+1) for c
+        alignment_mask = [c in range(int(low), int(high)) for c
                           in range(len(sig.channels))]
-        return sig.select_channels(alignment_mask)
+        result = sig.select_channels(alignment_mask)
+        return result.__class__(result.channels,
+                                result.data[:, :self.num_times], result.dt,
+                                result.times[:self.num_times])
 
     def apply(self, element: signal.EpochedSignal):
         area_l4 = os.path.commonprefix([l.decode() for l
@@ -32,12 +36,23 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
 
         sample = np.array((channels_index.values[0], l4_center,
                            channels_index.values[-1]))[np.newaxis, :]
+        if self.num_times is None or len(element) < self.num_times:
+            self._num_times = len(element)
         if self.data is None:
             return sample
         return np.concatenate((self.data, sample), axis=0)
 
     def fmap(self, f):
         return self.__class__(self._area, self._column, f(self.data))
+
+    @property
+    def num_channels(self):
+        low, _, high = self.result()[0]
+        return high - low
+
+    @property
+    def num_times(self):
+        return self._num_times
 
     def result(self):
         l4_channels = self._data[:, 1]
