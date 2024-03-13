@@ -132,7 +132,7 @@ class Summary:
             for k, v in element.signals.items():
                 key = k + "/" + self.signal_key(v)
                 if key not in self.stats:
-                    self.stats[key] = self.stat(v)
+                    self.stats[key] = self.stat(k, v)
                 self.stats[key].update(v)
         return self.stats
 
