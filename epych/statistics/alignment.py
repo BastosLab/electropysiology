@@ -61,7 +61,7 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
         return np.array([l4_channels - low_distance, l4_channels,
                          l4_channels + high_distance]).T.round()
 
-def laminar_alignment(sig):
+def laminar_alignment(name, sig):
     return LaminarAlignment()
 
 class AlignmentSummary(statistic.Summary):
