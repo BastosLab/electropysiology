@@ -12,9 +12,12 @@ class GrandAverage(statistic.Statistic[signal.EpochedSignal]):
             self._data = {"n": 0, "sum": np.zeros((*self.iid_shape, 1))}
 
     def apply(self, element: signal.EpochedSignal):
-        assert element.data.shape[:-1] == self.iid_shape
+        assert element.data.shape[0] == self.iid_shape[0]
+        data = element.data
+        if self.iid_shape[1] < element.data.shape[1]:
+            data = data[:, :self.iid_shape[1], :]
         running = copy.deepcopy(self.data)
-        running["sum"] += element.data.sum(axis=-1, keepdims=True)
+        running["sum"] += data.sum(axis=-1, keepdims=True)
         running["n"] += element.num_trials
         return running
 
