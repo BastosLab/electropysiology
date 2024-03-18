@@ -1,3 +1,3 @@
-from . import alignment, spectrum
+from . import alignment, grand, spectrum
 
-__all__ = ['alignment', 'spectrum']
+__all__ = ['alignment', 'grand', 'spectrum']

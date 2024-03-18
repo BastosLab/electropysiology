@@ -132,7 +132,7 @@ class Summary:
             for k, v in element.signals.items():
                 key = k + "/" + self.signal_key(v)
                 if key not in self.stats:
-                    self.stats[key] = self.stat()
+                    self.stats[key] = self.stat(k, v)
                 self.stats[key].update(v)
         return self.stats
 
@@ -147,8 +147,27 @@ class Summary:
         with open(path + "/summary.pickle", mode="wb") as f:
             pickle.dump(other, f)
 
+    def plot(self, vmin=None, vmax=None, dpi=100, figure=None, figargs={},
+             stattitle=None, **events):
+        fig, axes = plt.subplot_mosaic([list(self.stats.keys())],
+                                       figsize=(7 * len(self.stats), 3),
+                                       dpi=dpi, layout="constrained")
+        for stat, ax in axes.items():
+            name = stat
+            if stattitle is not None:
+                name = stattitle(stat, self.stats[stat])
+            self.stats[stat].plot(ax=ax, fig=fig, title=name, vmin=vmin,
+                                  vmax=vmax)
+
+        plt.show()
+        if figure is not None:
+            fig.savefig(figure, **figargs)
+        plt.close(fig)
+
     def signal_key(self, sig: signal.Signal):
-        raise NotImplementedError
+        return os.path.commonprefix([
+            loc.decode() for loc in sig.channels.location.values
+        ])
 
     @property
     def stat(self):
