@@ -69,9 +69,17 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
 def laminar_alignment(name, sig):
     return LaminarAlignment()
 
+def hippocampal_alignment(name, sig):
+    return LaminarAlignment(center_loc=subcortical_median)
+
+def location_prefix(probe, sig: signal.Signal):
+    return os.path.commonprefix([
+        loc.decode() for loc in sig.channels.location.values
+    ])
+
 class AlignmentSummary(statistic.Summary):
-    def __init__(self):
-        super().__init__(laminar_alignment)
+    def __init__(self, alignment=laminar_alignment):
+        super().__init__(location_prefix, alignment)
 
     @classmethod
     def unpickle(cls, path):
@@ -80,12 +88,9 @@ class AlignmentSummary(statistic.Summary):
         with open(path + "/summary.pickle", mode="rb") as f:
             self = pickle.load(f)
         self._stats = {}
-        ls = [entry.name for entry in os.scandir(path) if entry.is_dir()]
-        for entry in sorted(ls):
-            entry_ls = [area.name for area in os.scandir(path + "/" + entry)
-                        if area.is_dir()]
-            for area in entry_ls:
-                self._stats[entry + "/" + area] =\
-                    LaminarAlignment.unpickle(path + "/" + entry + "/" + area)
+        ls = [entry for (entry, _, _) in os.walk(path) if os.path.isdir(entry)]
+        for entry in sorted(ls[1:]):
+            entry = os.path.relpath(entry, start=path)
+            self._stats[entry] = LaminarAlignment.unpickle(path + "/" + entry)
         self._statistic = LaminarAlignment
         return self
