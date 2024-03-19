@@ -9,8 +9,17 @@ import re
 
 from .. import signal, statistic
 
+def subcortical_median(channels, locations):
+    return round(np.median(channels))
+
+def cortical_l4(channels, locations):
+    l4 = os.path.commonprefix([l.decode() for l in locations]) + "4"
+    l4_mask = [l4 in loc.decode() for loc in locations]
+    return round(np.median(channels[l4_mask]))
+
 class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
-    def __init__(self, column="location", data=None):
+    def __init__(self, center_loc=cortical_l4, column="location", data=None):
+        self._center_loc = center_loc
         self._column = column
         self._num_times = None
         super().__init__((1,), data=data)
@@ -25,14 +34,10 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
                                 result.times[:self.num_times])
 
     def apply(self, element: signal.EpochedSignal):
-        area_l4 = os.path.commonprefix([l.decode() for l
-                                        in element.channels.location]) + "4"
-        l4_mask = [area_l4 in loc.decode() for loc in element.channels.location]
-
         channels_index = element.channels.channel\
                          if "channel" in element.channels.columns\
                          else element.channels.index
-        l4_center = round(np.median(channels_index[l4_mask]))
+        l4_center = self._center_loc(channels_index, element.channels.location)
 
         sample = np.array((channels_index.values[0], l4_center,
                            channels_index.values[-1]))[np.newaxis, :]
