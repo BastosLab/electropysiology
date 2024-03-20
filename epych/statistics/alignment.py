@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from collections.abc import Iterable
+import functools
 import numpy as np
 import os
 import pandas as pd
@@ -77,9 +78,13 @@ def location_prefix(probe, sig: signal.Signal):
         loc.decode() for loc in sig.channels.location.values
     ])
 
+def location_set(probe, sig: signal.Signal):
+    locations = set([loc.decode() for loc in sig.channels.location.values])
+    return functools.reduce(lambda x, y: x + y, locations)
+
 class AlignmentSummary(statistic.Summary):
-    def __init__(self, alignment=laminar_alignment):
-        super().__init__(location_prefix, alignment)
+    def __init__(self, signal_key=location_prefix, alignment=laminar_alignment):
+        super().__init__(signal_key, alignment)
 
     @classmethod
     def unpickle(cls, path):
