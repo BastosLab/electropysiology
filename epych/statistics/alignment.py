@@ -70,7 +70,7 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
 def laminar_alignment(name, sig):
     return LaminarAlignment()
 
-def hippocampal_alignment(name, sig):
+def subcortical_alignment(name, sig):
     return LaminarAlignment(center_loc=subcortical_median)
 
 def location_prefix(probe, sig: signal.Signal):
