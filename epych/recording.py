@@ -18,6 +18,12 @@ from . import preprocess, signal
 def empty_intervals():
     return pd.DataFrame(columns=["trial", "type", "start", "end"])
 
+def empty_trials():
+    return pd.DataFrame(columns=["trial"]).set_index("trial")
+
+def default_units(time_unit=pq.second):
+    return {"start": pq.second, "end": pq.second}
+
 class Sampling(abc.Sequence):
     def __init__(self, intervals: pd.DataFrame, trials: pd.DataFrame,
                  units: dict[str, pq.UnitQuantity], **signals):

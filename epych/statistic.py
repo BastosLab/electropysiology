@@ -9,7 +9,7 @@ import os
 import pandas as pd
 import pickle
 import typing
-from typing import Generic, Optional, TypeVar
+from typing import Callable, Generic, Optional, TypeVar
 
 from . import signal, recording
 
@@ -123,14 +123,15 @@ class ChannelwiseStatistic(Statistic[T]):
 
 
 class Summary:
-    def __init__(self, statistic):
+    def __init__(self, signal_key: Callable, statistic):
+        self._signal_key = signal_key
         self._stat = statistic
         self._stats = {}
 
     def calculate(self, elements: Iterable[recording.Sampling]):
         for element in elements:
             for k, v in element.signals.items():
-                key = k + "/" + self.signal_key(v)
+                key = self.signal_key(k, v)
                 if key not in self.stats:
                     self.stats[key] = self.stat(k, v)
                 self.stats[key].update(v)
@@ -164,10 +165,9 @@ class Summary:
             fig.savefig(figure, **figargs)
         plt.close(fig)
 
-    def signal_key(self, sig: signal.Signal):
-        return os.path.commonprefix([
-            loc.decode() for loc in sig.channels.location.values
-        ])
+    @property
+    def signal_key(self):
+        return self._signal_key
 
     @property
     def stat(self):
