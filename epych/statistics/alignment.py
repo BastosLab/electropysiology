@@ -76,6 +76,22 @@ class ChannelAlignment(statistic.Statistic[signal.EpochedSignal]):
         return np.array([center_channels - low_distance, center_channels,
                          center_channels + high_distance]).T.round()
 
+class LaminarAlignment(ChannelAlignment):
+    def __init__(self, area="VIS", data=None):
+        self._area = area
+        super().__init__(column="location", data=data)
+
+    @property
+    def area(self):
+        return self._area
+
+    def center_filter(self, descriptors):
+        l4 = os.path.commonprefix([l.decode() for l in descriptors]) + "4"
+        return [l4 in loc.decode() for loc in descriptors]
+
+    def column_filter(self, column):
+        return [self.area in loc.decode() for loc in column.values]
+
 def laminar_alignment(name, sig):
     return LaminarAlignment()
 
