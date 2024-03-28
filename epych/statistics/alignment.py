@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from abc import abstractmethod
 from collections.abc import Iterable
 import functools
 import numpy as np
@@ -18,35 +19,43 @@ def cortical_l4(channels, locations):
     l4_mask = [l4 in loc.decode() for loc in locations]
     return round(np.median(channels[l4_mask]))
 
-class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
-    def __init__(self, center_loc=cortical_l4, column="location", data=None):
-        self._center_loc = center_loc
+class ChannelAlignment(statistic.Statistic[signal.EpochedSignal]):
+    def __init__(self, column="location", data=None):
         self._column = column
         self._num_times = None
         super().__init__((1,), data=data)
 
     def align(self, i: int, sig: signal.EpochedSignal) -> signal.EpochedSignal:
-        low, l4, high = self.result()[i]
-        alignment_mask = [c in range(int(low), int(high)) for c
-                          in range(len(sig.channels))]
-        result = sig.select_channels(alignment_mask)
+        low, center, high = self.result()[i]
+        alignment = [c in range(int(low), int(high)) for c in
+                     range(len(sig.channels))]
+        result = sig.select_channels(alignment)
         return result.__class__(result.channels,
                                 result.data[:, :self.num_times], result.dt,
                                 result.times[:self.num_times])
 
     def apply(self, element: signal.EpochedSignal):
-        channels_index = element.channels.channel\
-                         if "channel" in element.channels.columns\
-                         else element.channels.index
-        l4_center = self._center_loc(channels_index, element.channels.location)
+        channels_index = element.channels.channel if "channel"\
+                         in element.channels.columns else element.channels.index
+        descriptors = element.channels.loc[channels_index.index][self._column]
+        center = round(np.median(np.where(self.center_filter(descriptors))[0]))
+        center = channels_index.iloc[center]
 
-        sample = np.array((channels_index.values[0], l4_center,
+        sample_columns = element.channels.loc[:, [self._column, "channel"]]
+        sample = np.array((channels_index.values[0], center,
                            channels_index.values[-1]))[np.newaxis, :]
         if self.num_times is None or len(element) < self.num_times:
             self._num_times = len(element)
         if self.data is None:
-            return sample
-        return np.concatenate((self.data, sample), axis=0)
+            return {self._column: [sample_columns], "sample": sample}
+        return {
+            self._column: self.data[self._column] + [sample_columns],
+            "sample": np.concatenate((self.data["sample"], sample), axis=0)
+        }
+
+    @abstractmethod
+    def center_filter(self, descriptors):
+        raise NotImplementedError
 
     def fmap(self, f):
         return self.__class__(self._area, self._column, f(self.data))
@@ -61,11 +70,27 @@ class LaminarAlignment(statistic.Statistic[signal.EpochedSignal]):
         return self._num_times
 
     def result(self):
-        l4_channels = self._data[:, 1]
-        low_distance = (l4_channels - self._data[:, 0]).min()
-        high_distance = (self._data[:, 2] - l4_channels).min()
-        return np.array([l4_channels - low_distance, l4_channels,
-                         l4_channels + high_distance]).T.round()
+        center_channels = self.data["sample"][:, 1]
+        low_distance = (center_channels - self.data["sample"][:, 0]).min()
+        high_distance = (self.data["sample"][:, 2] - center_channels).min()
+        return np.array([center_channels - low_distance, center_channels,
+                         center_channels + high_distance]).T.round()
+
+class LaminarAlignment(ChannelAlignment):
+    def __init__(self, area="VIS", data=None):
+        self._area = area
+        super().__init__(column="location", data=data)
+
+    @property
+    def area(self):
+        return self._area
+
+    def center_filter(self, descriptors):
+        l4 = os.path.commonprefix([l.decode() for l in descriptors]) + "4"
+        return [l4 in loc.decode() for loc in descriptors]
+
+    def column_filter(self, column):
+        return [self.area in loc.decode() for loc in column.values]
 
 def laminar_alignment(name, sig):
     return LaminarAlignment()

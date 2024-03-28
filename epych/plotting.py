@@ -10,8 +10,9 @@ def extents(f):
 def imagesc(ax, cs, **kwargs):
     if kwargs['vmin'] is None and kwargs['vmax'] is None:
         m = max(np.abs(cs.min()), np.abs(cs.max()))
-        kwargs['vmin'] = -m
-        kwargs['vmax'] = m
+        std_dev = np.abs(cs.std())
+        kwargs['vmin'] = 2 * -std_dev
+        kwargs['vmax'] = 2 * std_dev
     x, y = np.linspace(0, cs.shape[1]), np.linspace(0, cs.shape[0])
     return ax.imshow(cs, aspect='auto', interpolation='none',
                      extent=extents(x) + extents(y), **kwargs)
