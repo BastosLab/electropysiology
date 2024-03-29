@@ -16,10 +16,10 @@ class GrandAverage(statistic.Statistic[T]):
         super().__init__((alignment.num_channels, alignment.num_times),
                          data=data)
         self._alignment = alignment
-        self._channels = None
         self._dt = None
         if data is None:
-            self._data = {"n": 0, "sum": np.zeros((*self.iid_shape, 1)),
+            self._data = {"channels": None, "n": 0,
+                          "sum": np.zeros((*self.iid_shape, 1)),
                           "timestamps": np.zeros(self.iid_shape[1])}
         self._signal_class = None
 
@@ -30,13 +30,17 @@ class GrandAverage(statistic.Statistic[T]):
             data = data[:, :self.num_times, :]
         running = copy.deepcopy(self.data)
 
-        if self._channels is None:
-            low, _, high = self._alignment.result()[0]
-            channels_range = [c in range(low, high) for c
-                              in element.channels.channel.values]
-            self._channels = element.channels.loc[channels_range]
-            self._dt = element.dt
+        channels = element.channels.reset_index(drop=True)
+        if running["channels"] is None:
+            running["channels"] = channels
+            self._dt = element._dt
             self._signal_class = element.__class__
+        else:
+            for column in running["channels"].columns:
+                if running["channels"][column].values.dtype == np.int64:
+                    weighted_column = channels[column] * element.num_trials
+                    running["channels"][column] += weighted_column
+
         running["n"] += element.num_trials
         running["sum"] += data.sum(axis=-1, keepdims=True)
         running["timestamps"] +=\
@@ -74,5 +78,8 @@ class GrandAverage(statistic.Statistic[T]):
     def result(self):
         data = self.data["sum"] / self.data["n"]
         times = self.data["timestamps"] / self.data["n"]
-        return self._signal_class(self._channels, data, self._dt,
-                                  times).evoked()
+        channels = self.data["channels"].copy()
+        for column in channels.columns:
+            if channels[column].values.dtype == np.int64:
+                channels[column] /= self.data["n"]
+        return self._signal_class(channels, data, self._dt, times).evoked()
