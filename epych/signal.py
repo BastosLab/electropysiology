@@ -213,8 +213,8 @@ class EpochedSignal(Signal):
         if "channel" not in channels.columns:
             channels.insert(len(channels.columns), "channel",
                             list(range(len(self.channels))))
-        return self.__class__(channels.loc[mask],
-                              self.data[mask, :], self.dt, self.times)
+        return self.__class__(channels.loc[mask], self.data[mask, :], self.dt,
+                              self.times)
 
     def select_trials(self, trials):
         return self.__class__(self.channels, self.data[:, :, trials],
