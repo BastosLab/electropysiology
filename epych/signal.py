@@ -213,8 +213,8 @@ class EpochedSignal(Signal):
         if "channel" not in channels.columns:
             channels.insert(len(channels.columns), "channel",
                             list(range(len(self.channels))))
-        return self.__class__(channels.loc[mask],
-                              self.data[mask, :], self.dt, self.times)
+        return self.__class__(channels.loc[mask], self.data[mask, :], self.dt,
+                              self.times)
 
     def select_trials(self, trials):
         return self.__class__(self.channels, self.data[:, :, trials],
@@ -279,21 +279,27 @@ class EvokedSignal(EpochedSignal):
         ax.set_yticks(ctick_locs, cticks)
         ax.grid(visible=True, linestyle=':', axis='y')
 
-    def line_plot(self, ax=None, fig=None, **kwargs):
+    def line_plot(self, ax=None, fig=None, logspace=False, **kwargs):
         if ax is None:
             ax = plt.gca()
         if fig is None:
             fig = plt.gcf()
-        ax.plot(self.times, self.data.T.squeeze(), **kwargs)
+        data = self.data.T.squeeze()
+        if logspace:
+            data = np.where(data < 0., -np.log(-data), np.log(data))
+        ax.plot(self.times, data, **kwargs)
 
-    def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
-                origin="lower", channel_ticks="location"):
+    def heatmap(self, ax=None, fig=None, logspace=False, title=None, vmin=None,
+                vmax=None, origin="lower", channel_ticks="location"):
         if ax is None:
             ax = plt.gca()
         if fig is None:
             fig = plt.gcf()
 
         data = self.data.squeeze()
+        if logspace:
+            data = np.log(data, where=data > 0.)
+            data = np.where(data < 0., -np.log(-data, where=data <0.), data)
         plotting.heatmap(fig, ax, data, cbar=(vmin is None and vmax is None),
                          title=title, vmin=vmin, vmax=vmax)
 

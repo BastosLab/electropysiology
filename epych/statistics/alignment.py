@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from abc import abstractmethod
+from collections import Counter
 from collections.abc import Iterable
 import functools
 import numpy as np
@@ -19,39 +20,43 @@ def cortical_l4(channels, locations):
     l4_mask = [l4 in loc.decode() for loc in locations]
     return round(np.median(channels[l4_mask]))
 
+def add_dicts(left, right, monoid=None):
+    if monoid is None:
+        monoid = lambda x, y: x + y
+    return {k: monoid(left[k], right[k]) for k in left.keys() & right.keys()}
+
 class ChannelAlignment(statistic.Statistic[signal.EpochedSignal]):
     def __init__(self, column="location", data=None):
         self._column = column
-        self._num_times = None
         super().__init__((1,), data=data)
 
     def align(self, i: int, sig: signal.EpochedSignal) -> signal.EpochedSignal:
-        low, center, high = self.result()[i]
-        alignment = [c in range(int(low), int(high)) for c in
-                     range(len(sig.channels))]
-        result = sig.select_channels(alignment)
-        return result.__class__(result.channels,
-                                result.data[:, :self.num_times], result.dt,
-                                result.times[:self.num_times])
+        alignment, locations = self.result()
+        num_times = self.num_times
+        low, center, high = alignment[i]
+
+        channels = sig.channels.channel if "channel" in sig.channels.columns\
+                   else sig.channels.index
+        result = sig.select_channels(channels.isin(range(low, high)))
+        result.channels.location = locations
+        return result.__class__(result.channels, result.data[:, :num_times],
+                                result.dt, result.times[:num_times])
 
     def apply(self, element: signal.EpochedSignal):
         channels_index = element.channels.channel if "channel"\
                          in element.channels.columns else element.channels.index
         descriptors = element.channels.loc[channels_index.index][self._column]
-        center = round(np.median(np.where(self.center_filter(descriptors))[0]))
-        center = channels_index.iloc[center]
+        center_channels = np.where(self.center_filter(descriptors))[0]
+        center = channels_index.iloc[round(np.median(center_channels))]
 
-        sample_columns = element.channels.loc[:, [self._column, "channel"]]
-        sample = np.array((channels_index.values[0], center,
-                           channels_index.values[-1]))[np.newaxis, :]
-        if self.num_times is None or len(element) < self.num_times:
-            self._num_times = len(element)
-        if self.data is None:
-            return {self._column: [sample_columns], "sample": sample}
-        return {
-            self._column: self.data[self._column] + [sample_columns],
-            "sample": np.concatenate((self.data["sample"], sample), axis=0)
+        sample = {
+            "center": [center],
+            "channels": [element.channels],
+            "num_times": [len(element)],
         }
+        if self.data is None:
+            return sample
+        return add_dicts(self.data, sample)
 
     @abstractmethod
     def center_filter(self, descriptors):
@@ -62,19 +67,33 @@ class ChannelAlignment(statistic.Statistic[signal.EpochedSignal]):
 
     @property
     def num_channels(self):
-        low, _, high = self.result()[0]
+        low, _, high = self.result()[0][0]
         return high - low
 
     @property
     def num_times(self):
-        return self._num_times
+        return min(self.data["num_times"])
 
+    @functools.cache
     def result(self):
-        center_channels = self.data["sample"][:, 1]
-        low_distance = (center_channels - self.data["sample"][:, 0]).min()
-        high_distance = (self.data["sample"][:, 2] - center_channels).min()
-        return np.array([center_channels - low_distance, center_channels,
-                         center_channels + high_distance]).T.round()
+        centers = np.array(self.data["center"])
+        distances = np.array([
+            [channels[0] - centers[i], channels[-1] - centers[i]]
+            for i, channels in enumerate(chans.channel.values for chans in
+                                         self.data["channels"])
+        ])
+        chans_down, chans_up = -distances[:, 0].max(), distances[:, 1].min()
+        alignment = np.stack((centers - chans_down, centers,
+                              centers + chans_up), axis=-1)
+        locations = []
+        for i, chans in enumerate(self.data["channels"]):
+            indices = range(alignment[i, 0], alignment[i, 2])
+            chans = chans.loc[chans.channel.isin(indices)]
+            locations.append(chans.location.values)
+        locations = [Counter(locs).most_common(1)[0][0] for locs
+                     in np.stack(locations, axis=-1)]
+        return alignment, locations
+
 
 class LaminarAlignment(ChannelAlignment):
     def __init__(self, area="VIS", data=None):
