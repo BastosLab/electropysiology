@@ -18,12 +18,14 @@ class GrandAverage(statistic.Statistic[T]):
         self._alignment = alignment
         self._dt = None
         if data is None:
-            self._data = {"channels": None, "n": 0,
+            self._data = {"channels": None, "k": 0, "n": 0,
                           "sum": np.zeros((*self.iid_shape, 1)),
                           "timestamps": np.zeros(self.iid_shape[1])}
         self._signal_class = None
 
     def apply(self, element: T):
+        element = self._alignment.align(self.data["k"], element)
+        assert len(element.channels) == self.num_channels
         assert element.data.shape[0] == self.num_channels
         data = element.data
         if self.num_times < element.data.shape[1]:
@@ -38,13 +40,12 @@ class GrandAverage(statistic.Statistic[T]):
         else:
             for column in running["channels"].columns:
                 if running["channels"][column].values.dtype == np.int64:
-                    weighted_column = channels[column] * element.num_trials
-                    running["channels"][column] += weighted_column
+                    running["channels"][column] += channels[column]
 
+        running["k"] += 1
         running["n"] += element.num_trials
         running["sum"] += data.sum(axis=-1, keepdims=True)
-        running["timestamps"] +=\
-            element.times[:self.num_times] * element.num_trials
+        running["timestamps"] += element.times[:self.num_times]
         return running
 
     def heatmap(self, ax=None, fig=None, title=None, vmin=None, vmax=None,
@@ -77,9 +78,9 @@ class GrandAverage(statistic.Statistic[T]):
 
     def result(self):
         data = self.data["sum"] / self.data["n"]
-        times = self.data["timestamps"] / self.data["n"]
+        times = self.data["timestamps"] / self.data["k"]
         channels = self.data["channels"].copy()
         for column in channels.columns:
             if channels[column].values.dtype == np.int64:
-                channels[column] /= self.data["n"]
+                channels[column] //= self.data["k"]
         return self._signal_class(channels, data, self._dt, times).evoked()
