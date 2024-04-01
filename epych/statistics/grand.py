@@ -23,8 +23,12 @@ class GrandAverage(statistic.Statistic[T]):
                           "timestamps": np.zeros(self.iid_shape[1])}
         self._signal_class = None
 
+    @property
+    def alignment(self):
+        return self._alignment
+
     def apply(self, element: T):
-        element = self._alignment.align(self.data["k"], element)
+        element = self.alignment.align(self.data["k"], element)
         assert len(element.channels) == self.num_channels
         assert element.data.shape[0] == self.num_channels
         data = element.data
