@@ -23,8 +23,12 @@ class GrandAverage(statistic.Statistic[T]):
                           "timestamps": np.zeros(self.iid_shape[1])}
         self._signal_class = None
 
+    @property
+    def alignment(self):
+        return self._alignment
+
     def apply(self, element: T):
-        element = self._alignment.align(self.data["k"], element)
+        element = self.alignment.align(self.data["k"], element)
         assert len(element.channels) == self.num_channels
         assert element.data.shape[0] == self.num_channels
         data = element.data
@@ -84,3 +88,42 @@ class GrandAverage(statistic.Statistic[T]):
             if channels[column].values.dtype == np.int64:
                 channels[column] //= self.data["k"]
         return self._signal_class(channels, data, self._dt, times).evoked()
+
+class GrandVariance(statistic.Statistic[T]):
+    def __init__(self, alignment: alignment.ChannelAlignment,
+                 mean: signal.EvokedSignal, data=None):
+        super().__init__((alignment.num_channels, alignment.num_times),
+                         data=data)
+        self._alignment = alignment
+        self._mean = mean
+        if data is None:
+            self._data = {"diffs": np.zeros((*self.iid_shape, 1)), "k": 0,
+                          "n": 0}
+
+    @property
+    def alignment(self):
+        return self._alignment
+
+    def apply(self, element: T):
+        element = self.alignment.align(self.data["k"], element)
+        assert len(element.channels) == self.alignment.num_channels
+        assert element.data.shape[0] == self.alignment.num_channels
+        data = element.data
+        if self.alignment.num_times < element.data.shape[1]:
+            data = data[:, :self.alignment.num_times, :]
+        running = copy.deepcopy(self.data)
+
+        running["diffs"] += ((data - self.mean.data) ** 2).sum(axis=-1,
+                                                               keepdims=True)
+        running["k"] += 1
+        running["n"] += element.num_trials
+        return running
+
+    @property
+    def mean(self):
+        return self._mean
+
+    def result(self):
+        variance = self.data["diffs"] / (self.data["n"] - 1)
+        return self.mean.__class__(self.mean.channels, variance, self.mean._dt,
+                                   self.mean.times)

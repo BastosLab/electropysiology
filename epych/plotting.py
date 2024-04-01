@@ -18,6 +18,7 @@ def imagesc(ax, cs, **kwargs):
                      extent=extents(x) + extents(y), **kwargs)
 
 def heatmap(fig, ax, data, title=None, cbar=True, vmin=-1e-4, vmax=1e-4):
+    cbar = cbar or vmin is None or vmax is None
     img = imagesc(ax, data, vmin=vmin, vmax=vmax, origin='lower')
     if cbar:
         fig.colorbar(img, ax=ax)
