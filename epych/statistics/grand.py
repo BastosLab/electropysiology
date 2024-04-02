@@ -3,6 +3,7 @@
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy
 from typing import TypeVar
 
 from .. import plotting, signal, statistic
@@ -127,3 +128,22 @@ class GrandVariance(statistic.Statistic[T]):
         variance = self.data["diffs"] / (self.data["n"] - 1)
         return self.mean.__class__(self.mean.channels, variance, self.mean._dt,
                                    self.mean.times)
+
+def t_test(left: GrandVariance, right: GrandVariance):
+    assert left.iid_shape == right.iid_shape
+    k = n = 0
+
+    std_err2l = left.result().data / left.data["n"]
+    std_err2r = right.result().data / right.data["n"]
+    ts = (left.mean.data - right.mean.data) / np.sqrt(std_err2l + std_err2r)
+    dfs = (std_err2l + std_err2r) ** 2
+    dfs /= std_err2l ** 2 / (left.data["n"] - 1) +\
+           std_err2r ** 2 / (right.data["n"] - 1)
+    pvals = scipy.special.stdtr(dfs, -np.abs(ts)) * 2
+    return ts, pvals
+
+def summary_t_test(left: statistic.Summary, right: statistic.Summary):
+    results = {}
+    for key in (left.stats.keys() & right.stats.keys()):
+        results[key] = t_test(left.stats[key], right.stats[key])
+    return results
