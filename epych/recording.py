@@ -104,10 +104,7 @@ class Sampling(abc.Sequence):
         with open(path + "/sampling.pickle", mode="wb") as f:
             pickle.dump(other, f)
 
-    def select_trials(self, f, *columns):
-        trial_entries = (list(self.trials[col].values) for col in columns)
-        selections = np.array([f(*entry) for entry in zip(*trial_entries)])
-
+    def select_trials(self, selections):
         trials = self.trials.loc[selections]
         signals = {k: s.select_trials(selections) for k, s
                    in self.signals.items()}
