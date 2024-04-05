@@ -289,19 +289,18 @@ class EvokedSignal(EpochedSignal):
             data = np.where(data < 0., -np.log(-data), np.log(data))
         ax.plot(self.times, data, **kwargs)
 
-    def heatmap(self, ax=None, fig=None, logspace=False, title=None, vmin=None,
-                vmax=None, origin="lower", channel_ticks="location"):
+    def heatmap(self, alpha=None, ax=None, fig=None, filename=None, title=None,
+                vmin=None, vmax=None, origin="lower", channel_ticks="location"):
         if ax is None:
             ax = plt.gca()
-        if fig is None:
-            fig = plt.gcf()
+        figure = plt.gcf() if fig is None else fig
 
         data = self.data.squeeze()
-        if logspace:
-            data = np.log(data, where=data > 0.)
-            data = np.where(data < 0., -np.log(-data, where=data <0.), data)
-        plotting.heatmap(fig, ax, data, cbar=(vmin is None and vmax is None),
-                         title=title, vmin=vmin, vmax=vmax)
+        if alpha is not None:
+            alpha = alpha.squeeze()
+        plotting.heatmap(figure, ax, data, alpha=alpha,
+                         cbar=(vmin is None and vmax is None), title=title,
+                         vmin=vmin, vmax=vmax)
 
         num_xticks = len(ax.get_xticks())
         xtick_locs = np.linspace(0, data.shape[1], num_xticks)
@@ -311,6 +310,10 @@ class EvokedSignal(EpochedSignal):
 
         if channel_ticks is not None and channel_ticks in self.channels.columns:
             self.annotate_channels(ax, channel_ticks)
+        if filename is not None:
+            figure.savefig(filename)
+            if fig is None:
+                plt.close(figure)
 
     def plot(self, *args, **kwargs):
         return self.line_plot(*args, **kwargs)

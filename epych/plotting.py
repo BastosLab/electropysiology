@@ -7,19 +7,20 @@ def extents(f):
     delta = f[1] - f[0]
     return [f[0] - delta/2, f[-1] + delta/2]
 
-def imagesc(ax, cs, **kwargs):
+def imagesc(ax, cs, alpha=None, **kwargs):
     if kwargs['vmin'] is None and kwargs['vmax'] is None:
         m = max(np.abs(cs.min()), np.abs(cs.max()))
         std_dev = np.abs(cs.std())
         kwargs['vmin'] = 2 * -std_dev
         kwargs['vmax'] = 2 * std_dev
     x, y = np.linspace(0, cs.shape[1]), np.linspace(0, cs.shape[0])
-    return ax.imshow(cs, aspect='auto', interpolation='none',
+    return ax.imshow(cs, alpha=alpha, aspect='auto', interpolation='none',
                      extent=extents(x) + extents(y), **kwargs)
 
-def heatmap(fig, ax, data, title=None, cbar=True, vmin=-1e-4, vmax=1e-4):
+def heatmap(fig, ax, data, alpha=None, title=None, cbar=True, vmin=-1e-4,
+            vmax=1e-4):
     cbar = cbar or vmin is None or vmax is None
-    img = imagesc(ax, data, vmin=vmin, vmax=vmax, origin='lower')
+    img = imagesc(ax, data, alpha=alpha, vmin=vmin, vmax=vmax, origin='lower')
     if cbar:
         fig.colorbar(img, ax=ax)
     if title is not None:
