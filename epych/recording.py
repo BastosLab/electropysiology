@@ -267,6 +267,41 @@ class EvokedSampling(Sampling):
             fig.savefig(figure, **figargs)
         plt.close(fig)
 
+    def plot_signal(self, name, alpha=None, vmin=None, vmax=None, path=None,
+                    figargs={}, sigtitle=None, **events):
+        if sigtitle is not None:
+            name = sigtitle(name, self.signals[name])
+
+        timespan = self.signals[name].times[-1] - self.signals[name].times[0]
+        timespan *= 4
+        fig = plt.figure(figsize=(timespan, 3), layout="constrained")
+        ax = fig.subplots()
+
+        self.signals[name].plot(alpha=alpha, ax=ax, fig=fig, title=name,
+                                vmin=vmin, vmax=vmax)
+        for (event, (time, color)) in events.items():
+            ymin, ymax = ax.get_ybound()
+            xtime = self.signals[name].sample_at(time)
+            ax.vlines(xtime, ymin, ymax, colors=color,
+                      linestyles='dashed', label=event)
+            ax.annotate(event, (xtime + 0.01, ymax))
+
+        plt.show()
+        if path is not None:
+            path = path + "/" + name + ".pdf"
+            fig.savefig(path, **figargs)
+        plt.close(fig)
+
+    def plot_signals(self, path, alphas={}, vmin=None, vmax=None, figargs={},
+                     sigtitle=None, **events):
+        assert os.path.isdir(path) or not os.path.exists(path)
+        os.makedirs(path, exist_ok=True)
+
+        for sig in self.signals:
+            self.plot_signal(sig, alpha=alphas.get(sig, None), vmin=vmin,
+                             vmax=vmax, path=path, figargs=figargs,
+                             sigtitle=sigtitle, **events)
+
 def trials_ttest(sa: Sampling, sb: Sampling, pvalue=0.05):
     assert isinstance(sa, Sampling)
     assert sa.__class__ == sb.__class__
