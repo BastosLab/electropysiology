@@ -288,8 +288,9 @@ class EvokedSampling(Sampling):
 
         plt.show()
         if path is not None:
-            path = path + "/" + name + ".pdf"
-            fig.savefig(path, **figargs)
+            path = path + "/" + name
+            fig.savefig(path + ".pdf", **figargs)
+            fig.savefig(path + ".png", **figargs)
         plt.close(fig)
 
     def plot_signals(self, path, alphas={}, vmin=None, vmax=None, figargs={},
