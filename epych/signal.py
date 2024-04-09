@@ -220,6 +220,10 @@ class EpochedSignal(Signal):
         return self.__class__(self.channels, self.data[:, :, trials],
                               self.dt, self.times)
 
+    def shift_timestamps(self, offset):
+        return self.__class__(self.channels, self.data, self.dt,
+                              self.times + offset)
+
     def __sub__(self, sig):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
