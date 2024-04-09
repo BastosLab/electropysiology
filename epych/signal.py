@@ -119,7 +119,7 @@ class EpochedSignal(Signal):
         assert self.dt == sig.dt
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        timestamps = (self.times[:num_samples] + sig.times[:num_samples]) / 2
+        timestamps = np.arange(0, num_samples * self.dt, self.dt)[:num_samples]
         data = self.data[:, :num_samples] + sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
@@ -226,7 +226,7 @@ class EpochedSignal(Signal):
         assert self.dt == sig.dt
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        timestamps = (self.times[:num_samples] + sig.times[:num_samples]) / 2
+        timestamps = np.arange(0, num_samples * self.dt, self.dt)[:num_samples]
         data = self.data[:, :num_samples] - sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
