@@ -119,7 +119,13 @@ class EpochedSignal(Signal):
         assert self.dt == sig.dt
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        timestamps = (self.times[:num_samples] + sig.times[:num_samples]) / 2
+        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
+                           atol=self.dt):
+            timestamps = np.arange(0, num_samples * self.dt, self.dt)
+        else:
+            timestamps = self.times
+        timestamps = timestamps[:num_samples]
+
         data = self.data[:, :num_samples] + sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
@@ -220,13 +226,23 @@ class EpochedSignal(Signal):
         return self.__class__(self.channels, self.data[:, :, trials],
                               self.dt, self.times)
 
+    def shift_timestamps(self, offset):
+        return self.__class__(self.channels, self.data, self.dt,
+                              self.times + offset)
+
     def __sub__(self, sig):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
         assert self.dt == sig.dt
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        timestamps = (self.times[:num_samples] + sig.times[:num_samples]) / 2
+        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
+                           atol=self.dt):
+            timestamps = np.arange(0, num_samples * self.dt, self.dt)
+        else:
+            timestamps = self.times
+        timestamps = timestamps[:num_samples]
+
         data = self.data[:, :num_samples] - sig.data[:, :num_samples]
         return self.__class__(self.channels, data, self.dt, timestamps)
 
