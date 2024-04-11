@@ -274,7 +274,7 @@ class EvokedSampling(Sampling):
 
         timespan = self.signals[name].times[-1] - self.signals[name].times[0]
         timespan *= 4
-        fig = plt.figure(figsize=(timespan, 3), layout="constrained")
+        fig = plt.figure(figsize=(timespan, 3), layout="tight")
         ax = fig.subplots()
 
         self.signals[name].plot(alpha=alpha, ax=ax, fig=fig, title=name,
@@ -290,18 +290,19 @@ class EvokedSampling(Sampling):
         if path is not None:
             path = path + "/" + name
             fig.savefig(path + ".pdf", **figargs)
-            fig.savefig(path + ".png", **figargs)
+            fig.savefig(path + ".svg", **figargs)
         plt.close(fig)
 
-    def plot_signals(self, path, alphas={}, vmin=None, vmax=None, figargs={},
+    def plot_signals(self, path, alphas={}, vmins={}, vmaxs={}, figargs={},
                      sigtitle=None, **events):
         assert os.path.isdir(path) or not os.path.exists(path)
         os.makedirs(path, exist_ok=True)
 
         for sig in self.signals:
-            self.plot_signal(sig, alpha=alphas.get(sig, None), vmin=vmin,
-                             vmax=vmax, path=path, figargs=figargs,
-                             sigtitle=sigtitle, **events)
+            self.plot_signal(sig, alpha=alphas.get(sig, None),
+                             vmin=vmins.get(sig, None),
+                             vmax=vmaxs.get(sig, None), path=path,
+                             figargs=figargs, sigtitle=sigtitle, **events)
 
 def trials_ttest(sa: Sampling, sb: Sampling, pvalue=0.05):
     assert isinstance(sa, Sampling)
