@@ -9,8 +9,7 @@ def extents(f):
 
 def imagesc(ax, cs, alpha=None, **kwargs):
     if kwargs['vmin'] is None and kwargs['vmax'] is None:
-        m = max(np.abs(cs.min()), np.abs(cs.max()))
-        std_dev = np.abs(cs.std())
+        std_dev = cs.std()
         kwargs['vmin'] = 2 * -std_dev
         kwargs['vmax'] = 2 * std_dev
     x, y = np.linspace(0, cs.shape[1]), np.linspace(0, cs.shape[0])
