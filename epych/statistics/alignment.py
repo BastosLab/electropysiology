@@ -16,8 +16,8 @@ def subcortical_median(channels, locations):
     return round(np.median(channels))
 
 def cortical_l4(channels, locations):
-    l4 = os.path.commonprefix([l.decode() for l in locations]) + "4"
-    l4_mask = [l4 in loc.decode() for loc in locations]
+    l4 = os.path.commonprefix(locations) + "4"
+    l4_mask = [l4 in loc for loc in locations]
     return round(np.median(channels[l4_mask]))
 
 def add_dicts(left, right, monoid=None):
@@ -105,25 +105,24 @@ class LaminarAlignment(ChannelAlignment):
         return self._area
 
     def center_filter(self, descriptors):
-        l4 = os.path.commonprefix([l.decode() for l in descriptors]) + "4"
-        return [l4 in loc.decode() for loc in descriptors]
+        l4 = os.path.commonprefix(list(descriptors.values)) + "4"
+        return [l4 in loc for loc in descriptors]
 
     def column_filter(self, column):
-        return [self.area in loc.decode() for loc in column.values]
+        return [self.area in loc for loc in column.values]
 
 def laminar_alignment(name, sig):
-    return LaminarAlignment()
+    area = os.path.commonprefix(list(sig.channels.location.values))
+    return LaminarAlignment(area=area)
 
 def subcortical_alignment(name, sig):
     return LaminarAlignment(center_loc=subcortical_median)
 
 def location_prefix(probe, sig: signal.Signal):
-    return os.path.commonprefix([
-        loc.decode() for loc in sig.channels.location.values
-    ])
+    return os.path.commonprefix(list(sig.channels.location.values))
 
 def location_set(probe, sig: signal.Signal):
-    locations = set([loc.decode() for loc in sig.channels.location.values])
+    locations = set([loc for loc in sig.channels.location.values])
     return functools.reduce(lambda x, y: x + y, locations)
 
 class AlignmentSummary(statistic.Summary):
