@@ -257,7 +257,6 @@ class EpochedSignal(Signal):
         self._timestamps = arrays['timestamps']
         self._data = arrays['data']
         self._channels = pd.read_csv(path + '/channels.csv', index_col=0)
-        self._channels["location"] = self._channels["location"].apply(eval)
         return self
 
 def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
