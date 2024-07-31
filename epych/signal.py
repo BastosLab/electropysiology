@@ -305,7 +305,8 @@ class EvokedSignal(EpochedSignal):
         ax.plot(self.times, data, **kwargs)
 
     def heatmap(self, alpha=None, ax=None, fig=None, filename=None, title=None,
-                vmin=None, vmax=None, origin="lower", channel_ticks="location"):
+                vmin=None, vmax=None, origin="lower", channel_ticks="location",
+                cmap=None):
         if ax is None:
             ax = plt.gca()
         figure = plt.gcf() if fig is None else fig
@@ -315,7 +316,7 @@ class EvokedSignal(EpochedSignal):
             alpha = alpha.squeeze()
         plotting.heatmap(figure, ax, data, alpha=alpha,
                          cbar=(vmin is None and vmax is None), title=title,
-                         vmin=vmin, vmax=vmax)
+                         vmin=vmin, vmax=vmax, cmap=cmap)
 
         num_xticks = len(ax.get_xticks())
         xtick_locs = np.linspace(0, data.shape[1], num_xticks)
