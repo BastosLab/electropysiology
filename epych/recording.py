@@ -241,7 +241,7 @@ class EvokedSampling(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def plot(self, alphas={}, vmin=None, vmax=None, dpi=100, figure=None,
-             figargs={}, sigtitle=None, **events):
+             figargs={}, sigtitle=None, cmap=None, **events):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
         fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
@@ -254,7 +254,7 @@ class EvokedSampling(Sampling):
                 name = sigtitle(sig, self.signals[sig])
             alpha = alphas.get(sig, None)
             self.signals[sig].plot(alpha=alpha, ax=ax, fig=fig, title=name,
-                                   vmin=vmin, vmax=vmax)
+                                   vmin=vmin, vmax=vmax, cmap=cmap)
             for (event, (time, color)) in events.items():
                 ymin, ymax = ax.get_ybound()
                 xtime = self.signals[sig].sample_at(time)
@@ -268,7 +268,7 @@ class EvokedSampling(Sampling):
         plt.close(fig)
 
     def plot_signal(self, name, alpha=None, vmin=None, vmax=None, path=None,
-                    figargs={}, sigtitle=None, **events):
+                    figargs={}, sigtitle=None, cmap=None, **events):
         if sigtitle is not None:
             name = sigtitle(name, self.signals[name])
 
@@ -278,7 +278,7 @@ class EvokedSampling(Sampling):
         ax = fig.subplots()
 
         self.signals[name].plot(alpha=alpha, ax=ax, fig=fig, title=name,
-                                vmin=vmin, vmax=vmax)
+                                vmin=vmin, vmax=vmax, cmap=cmap)
         for (event, (time, color)) in events.items():
             ymin, ymax = ax.get_ybound()
             xtime = self.signals[name].sample_at(time)
@@ -294,15 +294,15 @@ class EvokedSampling(Sampling):
         plt.close(fig)
 
     def plot_signals(self, path, alphas={}, vmins={}, vmaxs={}, figargs={},
-                     sigtitle=None, **events):
+                     sigtitle=None, cmap=None, **events):
         assert os.path.isdir(path) or not os.path.exists(path)
         os.makedirs(path, exist_ok=True)
 
         for sig in self.signals:
             self.plot_signal(sig, alpha=alphas.get(sig, None),
-                             vmin=vmins.get(sig, None),
-                             vmax=vmaxs.get(sig, None), path=path,
-                             figargs=figargs, sigtitle=sigtitle, **events)
+                             vmin=vmins.get(sig, None), path=path,
+                             vmax=vmaxs.get(sig, None), figargs=figargs,
+                             sigtitle=sigtitle, cmap=cmap, **events)
 
 def trials_ttest(sa: Sampling, sb: Sampling, pvalue=0.05):
     assert isinstance(sa, Sampling)
