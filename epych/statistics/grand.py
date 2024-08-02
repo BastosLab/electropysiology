@@ -133,9 +133,10 @@ def t_test(left: GrandVariance, right: GrandVariance):
     assert left.iid_shape == right.iid_shape
     k = n = 0
 
-    std_err2l = left.result().data / left.data["n"]
-    std_err2r = right.result().data / right.data["n"]
-    ts = (left.mean.data - right.mean.data) / np.sqrt(std_err2l + std_err2r)
+    std_err2l = left.result().data.magnitude / left.data["n"]
+    std_err2r = right.result().data.magnitude / right.data["n"]
+    ts = (left.mean.data - right.mean.data).magnitude
+    ts /= np.sqrt(std_err2l + std_err2r)
     dfs = (std_err2l + std_err2r) ** 2
     dfs /= std_err2l ** 2 / (left.data["n"] - 1) +\
            std_err2r ** 2 / (right.data["n"] - 1)

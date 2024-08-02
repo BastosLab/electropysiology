@@ -29,16 +29,18 @@ class LocalFieldPotential(signal.Signal):
             csd_trials = []
             depths = self.channel_depths(depth_column)[:, np.newaxis] * pq.mm
             neo_lfps = []
+            units = str(data.units.dimensionality) if hasattr(data, "units")\
+                    else "V"
             for trial in range(self.num_trials):
                 neo_lfp = AnalogSignal(data[:, :, trial].transpose(),
-                                       units="V",
+                                       units=units,
                                        sampling_rate = self.f0 * pq.Hz)
                 neo_lfp.annotate(coordinates=depths)
                 neo_lfps.append(neo_lfp)
             csd_trials = ProcessPoolExecutor().execute(estimate_csd, neo_lfps,
                                                        method=method)
             csd_trials = np.stack([np.array(t.transpose()) for t in csd_trials],
-                                  axis=-1)
+                                  axis=-1) * csd_trials[0].units
             channels = self.channels
         return self.__class__(channels, csd_trials, self.dt, self.times)
 
