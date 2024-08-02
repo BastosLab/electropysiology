@@ -43,7 +43,9 @@ class Signal(collections.abc.Sequence):
             if channels.step is None:
                 channels = slice(channels.start, channels.stop, 1)
         if times is None:
-            times = slice(self.times[0], self.times[-1], None)
+            times = self.times.magnitude if hasattr(self.times, 'units')\
+                    else self.times
+            times = slice(times[0], times[-1], None)
         else:
             if isinstance(times, int):
                 times = slice(times, times+1, None)
@@ -88,7 +90,7 @@ class Signal(collections.abc.Sequence):
         raise NotImplementedError
 
     def sample_at(self, t):
-        return np.nanargmin(np.abs(self._timestamps - t))
+        return np.nanargmin(np.abs(self._timestamps.magnitude - t))
 
     def sort_channels(self, key):
         indices = self.channels.sort_values(key, ascending=False).index
@@ -121,7 +123,8 @@ class EpochedSignal(Signal):
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
                            atol=self.dt):
-            timestamps = np.arange(0, num_samples * self.dt, self.dt)
+            dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
+            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
         else:
             timestamps = self.times
         timestamps = timestamps[:num_samples]
@@ -238,7 +241,8 @@ class EpochedSignal(Signal):
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
                            atol=self.dt):
-            timestamps = np.arange(0, num_samples * self.dt, self.dt)
+            dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
+            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
         else:
             timestamps = self.times
         timestamps = timestamps[:num_samples]
@@ -323,6 +327,9 @@ class EvokedSignal(EpochedSignal):
         xticks = np.linspace(self.times[0], self.times[-1], num_xticks)
         xticks = ["%0.2f" % t for t in xticks]
         ax.set_xticks(xtick_locs, xticks)
+        if hasattr(self.times, 'units'):
+            unit = list(self.times.units.dimensionality.keys())[0].name
+            ax.set_xlabel((unit + 's').capitalize())
 
         if channel_ticks is not None and channel_ticks in self.channels.columns:
             self.annotate_channels(ax, channel_ticks)
