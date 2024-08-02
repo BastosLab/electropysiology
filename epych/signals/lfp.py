@@ -38,7 +38,7 @@ class LocalFieldPotential(signal.Signal):
             csd_trials = ProcessPoolExecutor().execute(estimate_csd, neo_lfps,
                                                        method=method)
             csd_trials = np.stack([np.array(t.transpose()) for t in csd_trials],
-                                  axis=-1)
+                                  axis=-1) * csd_trials[0].units
             channels = self.channels
         return self.__class__(channels, csd_trials, self.dt, self.times)
 
