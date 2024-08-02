@@ -244,9 +244,10 @@ class EvokedSampling(Sampling):
              figargs={}, sigtitle=None, cmap=None, **events):
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
+        if hasattr(timespan, "units"):
+            timespan = timespan.magnitude
         fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
-                                       figsize=(timespan, 3), dpi=dpi,
-                                       layout="constrained")
+                                       figsize=(timespan, 3), dpi=dpi)
 
         for sig, ax in axes.items():
             name = sig
@@ -269,15 +270,16 @@ class EvokedSampling(Sampling):
 
     def plot_signal(self, name, alpha=None, vmin=None, vmax=None, path=None,
                     figargs={}, sigtitle=None, cmap=None, **events):
-        if sigtitle is not None:
-            name = sigtitle(name, self.signals[name])
-
         timespan = self.signals[name].times[-1] - self.signals[name].times[0]
         timespan *= 4
-        fig = plt.figure(figsize=(timespan, 3), layout="tight")
+        if hasattr(timespan, "units"):
+            timespan = timespan.magnitude
+        fig = plt.figure(figsize=(timespan, 3))
         ax = fig.subplots()
 
-        self.signals[name].plot(alpha=alpha, ax=ax, fig=fig, title=name,
+        title = sigtitle(name, self.signals[name]) if sigtitle is not None\
+                else name
+        self.signals[name].plot(alpha=alpha, ax=ax, fig=fig, title=title,
                                 vmin=vmin, vmax=vmax, cmap=cmap)
         for (event, (time, color)) in events.items():
             ymin, ymax = ax.get_ybound()
@@ -289,8 +291,9 @@ class EvokedSampling(Sampling):
         plt.show()
         if path is not None:
             path = path + "/" + name
-            fig.savefig(path + ".pdf", **figargs)
-            fig.savefig(path + ".svg", **figargs)
+            fig.savefig(path + ".pdf", bbox_inches='tight', **figargs)
+            fig.savefig(path + ".png", bbox_inches='tight', **figargs)
+            fig.savefig(path + ".svg", bbox_inches='tight', **figargs)
         plt.close(fig)
 
     def plot_signals(self, path, alphas={}, vmins={}, vmaxs={}, figargs={},
