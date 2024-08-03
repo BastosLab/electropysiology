@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import collections
 import collections.abc
 import copy
 import hdf5storage as mat
@@ -286,17 +287,25 @@ class EvokedSignal(EpochedSignal):
         super().__init__(channels, data, dt, timestamps)
 
     def annotate_channels(self, ax, key):
-        prev_channel = ""
-        ctick_locs = []
-        cticks = []
+        channels = [chan.decode() if isinstance(chan, bytes) else chan
+                    for chan in self.channels[key].values]
+        area = os.path.commonprefix(channels)
+        laminar_channels = collections.defaultdict(lambda: [])
         for c, chan in enumerate(self.channels[key].values):
-            if chan == prev_channel:
-                continue
-            prev_channel = chan
-            ctick_locs.append(c)
-            cticks.append(chan.decode() if isinstance(chan, bytes) else chan)
-        ax.set_yticks(ctick_locs, cticks)
-        ax.grid(visible=True, linestyle=':', axis='y')
+            layer = 'L' + chan.removeprefix(area)
+            laminar_channels[layer].append(c)
+
+        xmin, xmax = ax.get_xbound()
+        ax.hlines([max(laminar_channels[layer][0] - 1, 0) for layer
+                   in laminar_channels.keys()], xmin, xmax, linestyles=":")
+        ax.set_yticks([], [])
+
+        minortick_locs, laminar_labels = [], []
+        for layer in laminar_channels:
+            mid = (len(laminar_channels[layer]) - 1) // 2
+            minortick_locs.append(laminar_channels[layer][mid])
+            laminar_labels.append(layer)
+        ax.set_yticks(minortick_locs, laminar_labels, minor=True)
 
     def line_plot(self, ax=None, fig=None, logspace=False, **kwargs):
         if ax is None:
