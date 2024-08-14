@@ -48,7 +48,7 @@ class GrandConcatenation(statistic.Statistic[T]):
 
         running["k"] += 1
         running["cat"] = data if running["cat"] is None else\
-                         np.cat((running["cat"], data), axis=-1)
+                         np.concatenate((running["cat"], data), axis=-1)
         running["timestamps"] += element.times[:self.num_times]
         return running
 
