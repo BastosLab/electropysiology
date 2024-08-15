@@ -185,19 +185,21 @@ class GrandVariance(statistic.Statistic[T]):
         return self.mean.__class__(self.mean.channels, variance, self.mean._dt,
                                    self.mean.times)
 
+def t_stats(ln, lmean, lvar, rn, rmean, rvar):
+    l_stderr, r_stderr = lvar / ln, rvar / rn
+    ts = (lmean - rmean) / np.sqrt(l_stderr + r_stderr)
+    dfs = (l_stderr + r_stderr) ** 2
+    dfs /= l_stderr ** 2 / (ln - 1) + r_stderr ** 2 / (rn - 1)
+    pvals = scipy.special.stdtr(dfs, -np.abs(ts)) * 2
+    return ts, pvals
+
 def t_test(left: GrandVariance, right: GrandVariance):
     assert left.iid_shape == right.iid_shape
     k = n = 0
 
-    std_err2l = left.result().data.magnitude / left.data["n"]
-    std_err2r = right.result().data.magnitude / right.data["n"]
-    ts = (left.mean.data - right.mean.data).magnitude
-    ts /= np.sqrt(std_err2l + std_err2r)
-    dfs = (std_err2l + std_err2r) ** 2
-    dfs /= std_err2l ** 2 / (left.data["n"] - 1) +\
-           std_err2r ** 2 / (right.data["n"] - 1)
-    pvals = scipy.special.stdtr(dfs, -np.abs(ts)) * 2
-    return ts, pvals
+    return t_stats(left.data["n"], left.mean.data.magnitude,
+                   left.result().data.magnitude, right.data["n"],
+                   right.mean.data.magnitude, right.result().data.magnitude)
 
 def summary_t_test(left: statistic.Summary, right: statistic.Summary):
     results = {}
