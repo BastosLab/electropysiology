@@ -3,6 +3,7 @@
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
+import opencv2 as cv
 import scipy
 from typing import TypeVar
 
@@ -184,6 +185,76 @@ class GrandVariance(statistic.Statistic[T]):
         variance = self.data["diffs"] / (self.data["n"] - 1)
         return self.mean.__class__(self.mean.channels, variance, self.mean._dt,
                                    self.mean.times)
+
+class GrandNonparametricClusterTest(Statistic[T]):
+    def __init__(self, alignment: alignment.LaminarAlignment, alpha=0.05,
+                 data=None, partitions=1000):
+        super().__init__((alignment.num_channels, alignment.num_times),
+                         data=data)
+        self._alignment = alignment
+        self._alpha = alpha
+        if data is None:
+            self._data = {"left": None, "right": None}
+        self._partitions = partitions
+
+    @property
+    def alignment(self):
+        return self._alignment
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    def apply(self, element: tuple[T, T]):
+        assert self.data["left"] is None and self.data["right"] is None
+        assert element[0].dt == element[1].dt
+        assert element[0].channels == element[1].channels
+
+        return {"left": element[0], "right": element[0]}
+
+    @property
+    def partitions(self):
+        return self._partitions
+
+    def result(self):
+        ldata, rdata = self.data["left"].data, self.data["right"].data
+        lmean, rmean = ldata.mean(axis=-1), rdata.mean(axis=-1)
+        lvar = np.var(ldata, axis=-1, ddof=1)
+        rvar = np.var(rdata, axis=-1, ddof=1)
+        ts, pvals = t_stats(ldata.shape[-1], lmean, lvar, rdata.shape[-1],
+                            rmean, rvar)
+
+        combined_data = np.concatenate((ldata, rdata), axis=-1)
+        cluster_sizes = []
+        for k in range(self.partitions):
+            rng = np.random.default_rng()
+            trials = rng.permutation(combined_data.shape[-1])
+            ltrials = trials[:ldata.shape[-1]]
+            rtrials = trials[ldata.shape[-1]:]
+
+            l_pseudo = combined_data[:, :, ltrials]
+            r_pseudo = combined_data[:, :, rtrials]
+            l_pseudomean = l_pseudo.mean(axis=-1)
+            r_pseudomean = r_pseudo.mean(axis=-1)
+            l_pseudovar = np.var(l_pseudo, axis=-1, ddof=1)
+            r_pseudovar = np.var(r_pseudo, axis=-1, ddof=1)
+            ts, _ = t_stats(len(ltrials), l_pseudomean, l_pseudovar,
+                            len(rtrials), r_pseudomean, r_pseudovar)
+            N, labels = cv.connectedComponents(ts, connectivity=8)
+            cluster_sizes.append(max([labels == n for n in range(1, N)]))
+
+        critical_bin = round(self.alpha * self.partitions)
+        bins = sorted(cluster_sizes, reverse=True)
+        critical_val = bins[critical_bin]
+
+        N, labels = cv.connectedComponents(ts, connectivity=8)
+        for cluster in range(1, N):
+            if sum(labels == cluster) < critical_val:
+                ts[labels == cluster] = 0
+
+        return self.data["left"].__class__(self.data["left"].channels, ts,
+                                           self.data["left"].dt,
+                                           self.data["left"].times)
 
 def t_stats(ln, lmean, lvar, rn, rmean, rvar):
     l_stderr, r_stderr = lvar / ln, rvar / rn
