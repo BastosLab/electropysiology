@@ -91,7 +91,11 @@ class Signal(collections.abc.Sequence):
         raise NotImplementedError
 
     def sample_at(self, t):
-        return np.nanargmin(np.abs(self._timestamps.magnitude - t))
+        if hasattr(self._timestamps, "units"):
+            times = self._timestamps.magnitude
+        else:
+            times = self._timestamps
+        return np.nanargmin(np.abs(times - t))
 
     def sort_channels(self, key):
         indices = self.channels.sort_values(key, ascending=False).index
