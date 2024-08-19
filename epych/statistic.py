@@ -127,10 +127,18 @@ class Summary:
         self._signal_key = signal_key
         self._stat = statistic
         self._stats = {}
+        self._trials = None
 
     def calculate(self, elements: Iterable[dict[str, Iterable[signal.Signal]]]):
         for element in elements:
-            for k, v in element.items():
+            if isinstance(element, recording.Sampling):
+                items = element.signals.items
+                self._trials = element.trials if self._trials is None else\
+                               pd.concat((self._trials, element.trials), axis=0,
+                                         ignore_index=True).rename_axis("trial")
+            else:
+                items = element.items
+            for k, v in items():
                 key = self.signal_key(k, v)
                 if key not in self.stats:
                     self.stats[key] = self.stat(k, v)
@@ -164,6 +172,14 @@ class Summary:
         if figure is not None:
             fig.savefig(figure, **figargs)
         plt.close(fig)
+
+    def results(self):
+        stat_results = {k: v.result() for k, v in self.stats.items()}
+        if all([isinstance(v, signal.Signal) for v in stat_results.values()]):
+            return recording.Sampling(recording.empty_intervals(),
+                                      self._trials, recording.default_units(),
+                                      **stat_results)
+        return stat_results
 
     @property
     def signal_key(self):
