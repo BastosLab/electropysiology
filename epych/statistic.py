@@ -128,9 +128,9 @@ class Summary:
         self._stat = statistic
         self._stats = {}
 
-    def calculate(self, elements: Iterable[recording.Sampling]):
+    def calculate(self, elements: Iterable[dict[str, Iterable[signal.Signal]]]):
         for element in elements:
-            for k, v in element.signals.items():
+            for k, v in element.items():
                 key = self.signal_key(k, v)
                 if key not in self.stats:
                     self.stats[key] = self.stat(k, v)
