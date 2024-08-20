@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
 import copy
+import functools
 import matplotlib.pyplot as plt
 import numpy as np
-import opencv2 as cv
+import cv2 as cv
 import scipy
 from typing import TypeVar
 
@@ -186,7 +187,7 @@ class GrandVariance(statistic.Statistic[T]):
         return self.mean.__class__(self.mean.channels, variance, self.mean._dt,
                                    self.mean.times)
 
-class GrandNonparametricClusterTest(Statistic[T]):
+class GrandNonparametricClusterTest(statistic.Statistic[T]):
     def __init__(self, alignment: alignment.LaminarAlignment, alpha=0.05,
                  data=None, partitions=1000):
         super().__init__((alignment.num_channels, alignment.num_times),
@@ -208,7 +209,7 @@ class GrandNonparametricClusterTest(Statistic[T]):
     def apply(self, element: tuple[T, T]):
         assert self.data["left"] is None and self.data["right"] is None
         assert element[0].dt == element[1].dt
-        assert element[0].channels == element[1].channels
+        assert (element[0].channels == element[1].channels).all().all()
 
         return {"left": element[0], "right": element[0]}
 
@@ -216,6 +217,7 @@ class GrandNonparametricClusterTest(Statistic[T]):
     def partitions(self):
         return self._partitions
 
+    @functools.cache
     def result(self):
         ldata, rdata = self.data["left"].data, self.data["right"].data
         lmean, rmean = ldata.mean(axis=-1), rdata.mean(axis=-1)
@@ -238,21 +240,25 @@ class GrandNonparametricClusterTest(Statistic[T]):
             r_pseudomean = r_pseudo.mean(axis=-1)
             l_pseudovar = np.var(l_pseudo, axis=-1, ddof=1)
             r_pseudovar = np.var(r_pseudo, axis=-1, ddof=1)
-            ts, _ = t_stats(len(ltrials), l_pseudomean, l_pseudovar,
-                            len(rtrials), r_pseudomean, r_pseudovar)
-            N, labels = cv.connectedComponents(ts, connectivity=8)
-            cluster_sizes.append(max([labels == n for n in range(1, N)]))
+            ts, pvals = t_stats(len(ltrials), l_pseudomean, l_pseudovar,
+                                len(rtrials), r_pseudomean, r_pseudovar)
+            significances = (pvals < self.alpha).astype(np.uint8)
+            N, labels = cv.connectedComponents(significances, connectivity=8)
+            cluster_size = max([(labels == n).sum() for n in range(1, N)])
+            cluster_sizes.append(cluster_size)
 
         critical_bin = round(self.alpha * self.partitions)
         bins = sorted(cluster_sizes, reverse=True)
         critical_val = bins[critical_bin]
 
-        N, labels = cv.connectedComponents(ts, connectivity=8)
+        significances = (pvals < self.alpha).astype(np.uint8)
+        N, labels = cv.connectedComponents(significances, connectivity=8)
         for cluster in range(1, N):
-            if sum(labels == cluster) < critical_val:
-                ts[labels == cluster] = 0
+            if (labels == cluster).sum() < critical_val:
+                significances[labels == cluster] = 0
 
-        return self.data["left"].__class__(self.data["left"].channels, ts,
+        return self.data["left"].__class__(self.data["left"].channels,
+                                           significances[:, :, np.newaxis],
                                            self.data["left"].dt,
                                            self.data["left"].times)
 
