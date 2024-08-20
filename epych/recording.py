@@ -31,8 +31,8 @@ class Sampling(abc.Sequence):
             assert column in intervals.columns or column in trials.columns
         assert set(intervals.columns) >= {"type", "start", "end"}
         assert trials.index.name == "trial"
-        for signal in signals.values():
-            assert len(trials) in (0, signal.num_trials)
+        assert len(trials) == 0 or any(signal.num_trials == len(trials) for
+                                       signal in signals.values())
         assert isinstance(units["start"], pq.UnitTime) and\
                isinstance(units["end"], pq.UnitTime)
         self._intervals = intervals
