@@ -211,7 +211,7 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
         assert element[0].dt == element[1].dt
         assert (element[0].channels == element[1].channels).all().all()
 
-        return {"left": element[0], "right": element[0]}
+        return {"left": element[0], "right": element[1]}
 
     @property
     def partitions(self):
