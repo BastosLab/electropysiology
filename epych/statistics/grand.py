@@ -3,6 +3,7 @@
 import copy
 import functools
 import matplotlib.pyplot as plt
+import mne
 import numpy as np
 import cv2 as cv
 import scipy
@@ -220,69 +221,25 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
     @functools.cache
     def result(self):
         ldata, rdata = self.data["left"].data, self.data["right"].data
+
+        dfd = ldata.shape[-1] + rdata.shape[-2] - 2
+        threshold = scipy.stats.f.ppf(1 - self.alpha / 2,
+                                      dfn=ldata.shape[-1] - 1,
+                                      dfd=rdata.shape[-1] - 1)
+        Fs, clusters, pvals, H0s = mne.stats.spatio_temporal_cluster_test(
+            (np.swapaxes(ldata, 0, -1), np.swapaxes(rdata, 0, -1)), n_jobs=-1,
+            n_permutations=self.partitions, out_type="mask", tail=0,
+            threshold=threshold, t_power=0,
+        )
+        cluster_masks = [clusters[c] for c in np.where(pvals < self.alpha)[0]]
+        mask = functools.reduce(np.logical_or, cluster_masks).T
+
         lmean, rmean = ldata.mean(axis=-1), rdata.mean(axis=-1)
-        lvar = np.var(ldata, axis=-1, ddof=1)
-        rvar = np.var(rdata, axis=-1, ddof=1)
-        ts, pvals = t_stats(ldata.shape[-1], lmean, lvar, rdata.shape[-1],
-                            rmean, rvar)
-        del lvar
-        del rvar
-        del ts
-
-        combined_data = np.concatenate((ldata, rdata), axis=-1)
-        cluster_sizes = []
-        for k in range(self.partitions):
-            rng = np.random.default_rng()
-            trials = rng.permutation(combined_data.shape[-1])
-            ltrials = trials[:ldata.shape[-1]]
-            rtrials = trials[ldata.shape[-1]:]
-
-            l_pseudo = combined_data[:, :, ltrials]
-            r_pseudo = combined_data[:, :, rtrials]
-            l_pseudomean = l_pseudo.mean(axis=-1)
-            r_pseudomean = r_pseudo.mean(axis=-1)
-            l_pseudovar = np.var(l_pseudo, axis=-1, ddof=1)
-            r_pseudovar = np.var(r_pseudo, axis=-1, ddof=1)
-            ts, ps = t_stats(len(ltrials), l_pseudomean, l_pseudovar,
-                                len(rtrials), r_pseudomean, r_pseudovar)
-            significances = (ps < self.alpha).astype(np.uint8)
-            N, labels = cv.connectedComponents(significances, connectivity=8)
-            cluster_size = max([(labels == n).sum() for n in range(1, N)])
-            cluster_sizes.append(cluster_size)
-            del labels
-            del significances
-            del ts
-            del ps
-            del l_pseudovar
-            del r_pseudovar
-            del l_pseudomean
-            del r_pseudomean
-            del l_pseudo
-            del r_pseudo
-        del combined_data
-
-        critical_bin = round(self.alpha * self.partitions)
-        bins = sorted(cluster_sizes, reverse=True)
-        critical_val = bins[critical_bin]
-
-        significances = (pvals < self.alpha).astype(np.uint8)
-        N, labels = cv.connectedComponents(significances, connectivity=8)
-        for cluster in range(1, N):
-            if (labels == cluster).sum() < critical_val:
-                significances[labels == cluster] = 0
-        del labels
-
-        significant_diffs = ((lmean - rmean) * significances)[:, :, np.newaxis]
-        del lmean
-        del rmean
-        del significances
-        del ldata
-        del rdata
-
+        significant_diffs = ((lmean - rmean) * mask)[:, :, np.newaxis]
         return self.data["left"].__class__(self.data["left"].channels,
                                            significant_diffs,
                                            self.data["left"].dt,
-                                           self.data["left"].times)
+                                           self.data["left"].times).evoked()
 
 def t_stats(ln, lmean, lvar, rn, rmean, rvar):
     l_stderr, r_stderr = lvar / ln, rvar / rn
