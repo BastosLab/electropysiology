@@ -225,6 +225,9 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
         rvar = np.var(rdata, axis=-1, ddof=1)
         ts, pvals = t_stats(ldata.shape[-1], lmean, lvar, rdata.shape[-1],
                             rmean, rvar)
+        del lvar
+        del rvar
+        del ts
 
         combined_data = np.concatenate((ldata, rdata), axis=-1)
         cluster_sizes = []
@@ -240,12 +243,23 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
             r_pseudomean = r_pseudo.mean(axis=-1)
             l_pseudovar = np.var(l_pseudo, axis=-1, ddof=1)
             r_pseudovar = np.var(r_pseudo, axis=-1, ddof=1)
-            ts, pvals = t_stats(len(ltrials), l_pseudomean, l_pseudovar,
+            ts, ps = t_stats(len(ltrials), l_pseudomean, l_pseudovar,
                                 len(rtrials), r_pseudomean, r_pseudovar)
-            significances = (pvals < self.alpha).astype(np.uint8)
+            significances = (ps < self.alpha).astype(np.uint8)
             N, labels = cv.connectedComponents(significances, connectivity=8)
             cluster_size = max([(labels == n).sum() for n in range(1, N)])
             cluster_sizes.append(cluster_size)
+            del labels
+            del significances
+            del ts
+            del ps
+            del l_pseudovar
+            del r_pseudovar
+            del l_pseudomean
+            del r_pseudomean
+            del l_pseudo
+            del r_pseudo
+        del combined_data
 
         critical_bin = round(self.alpha * self.partitions)
         bins = sorted(cluster_sizes, reverse=True)
@@ -256,9 +270,17 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
         for cluster in range(1, N):
             if (labels == cluster).sum() < critical_val:
                 significances[labels == cluster] = 0
+        del labels
+
+        significant_diffs = ((lmean - rmean) * significances)[:, :, np.newaxis]
+        del lmean
+        del rmean
+        del significances
+        del ldata
+        del rdata
 
         return self.data["left"].__class__(self.data["left"].channels,
-                                           significances[:, :, np.newaxis],
+                                           significant_diffs,
                                            self.data["left"].dt,
                                            self.data["left"].times)
 
