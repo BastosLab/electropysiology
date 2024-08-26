@@ -164,7 +164,9 @@ class EpochedSignal(Signal):
         return self.__class__(self.channels, data, self.dt, timestamps)
 
     def evoked(self):
-        data = self.data.mean(-1, keepdims=True)
+        data = self.data.magnitude if hasattr(self.data, 'magnitude')\
+               else self.data
+        data = data.mean(-1, keepdims=True)
         return EvokedSignal(self.channels, data, self.dt, self.times)
 
     def get_data(self, channels, times, trials):
