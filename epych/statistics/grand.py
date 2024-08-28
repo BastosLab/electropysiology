@@ -229,17 +229,21 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
         Fs, clusters, pvals, H0s = mne.stats.spatio_temporal_cluster_test(
             (np.swapaxes(ldata, 0, -1), np.swapaxes(rdata, 0, -1)), n_jobs=-1,
             n_permutations=self.partitions, out_type="mask", tail=0,
-            threshold=threshold, t_power=0,
+            threshold=threshold,
         )
         cluster_masks = [clusters[c] for c in np.where(pvals < self.alpha)[0]]
-        mask = functools.reduce(np.logical_or, cluster_masks).T
+        null_mask = np.resize(np.array([False]),
+                              (ldata.shape[1], ldata.shape[0]))
+        mask = functools.reduce(np.logical_or, cluster_masks, null_mask).T
 
         lmean, rmean = ldata.mean(axis=-1), rdata.mean(axis=-1)
-        significant_diffs = ((lmean - rmean) * mask)[:, :, np.newaxis]
-        return self.data["left"].__class__(self.data["left"].channels,
-                                           significant_diffs,
-                                           self.data["left"].dt,
-                                           self.data["left"].times).evoked()
+        return {
+            "mask": mask,
+            "signal": self.data["left"].__class__(
+                self.data["left"].channels, (lmean - rmean)[:, :, np.newaxis],
+                self.data["left"].dt, self.data["left"].times
+            ).evoked()
+        }
 
 def t_stats(ln, lmean, lvar, rn, rmean, rvar):
     l_stderr, r_stderr = lvar / ln, rvar / rn
