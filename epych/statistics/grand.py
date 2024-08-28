@@ -198,6 +198,7 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
         if data is None:
             self._data = {"left": None, "right": None}
         self._partitions = partitions
+        self._result = {}
 
     @property
     def alignment(self):
@@ -218,7 +219,7 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
     def partitions(self):
         return self._partitions
 
-    def plot(self, fmask=None, fsig=None, events={}, **kwargs):
+    def plot(self, fmask=None, fsig=None, **kwargs):
         contrast = self.result()
         if fmask is None:
             mask = contrast["mask"]
@@ -230,18 +231,8 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
             signal = fsig(contrast["signal"])
 
         signal = signal.fmap(lambda data: data * mask[:, :, np.newaxis])
-        result = signal.plot(**kwargs)
+        return signal.plot(**kwargs)
 
-        for (event, (time, color)) in events.items():
-            ymin, ymax = ax.get_ybound()
-            xtime = signal.sample_at(time)
-            ax.vlines(xtime, ymin, ymax, colors=color,
-                      linestyles='dashed', label=event)
-            ax.annotate(event, (xtime + 0.005, ymax))
-
-        return result
-
-    @functools.cache
     def result(self):
         ldata, rdata = self.data["left"].data, self.data["right"].data
 
