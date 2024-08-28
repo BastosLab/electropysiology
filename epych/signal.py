@@ -313,7 +313,8 @@ class EvokedSignal(EpochedSignal):
             laminar_labels.append(layer)
         ax.set_yticks(minortick_locs, laminar_labels, minor=True)
 
-    def line_plot(self, ax=None, fig=None, logspace=False, **kwargs):
+    def line_plot(self, ax=None, fig=None, logspace=False, callback=None,
+                  **kwargs):
         if ax is None:
             ax = plt.gca()
         if fig is None:
@@ -322,10 +323,12 @@ class EvokedSignal(EpochedSignal):
         if logspace:
             data = np.where(data < 0., -np.log(-data), np.log(data))
         ax.plot(self.times, data, **kwargs)
+        if callback is not None:
+            callback(self, ax)
 
     def heatmap(self, alpha=None, ax=None, fig=None, filename=None, title=None,
                 vmin=None, vmax=None, origin="lower", channel_ticks="location",
-                cmap=None):
+                cmap=None, callback=None):
         if ax is None:
             ax = plt.gca()
         figure = plt.gcf() if fig is None else fig
@@ -345,9 +348,12 @@ class EvokedSignal(EpochedSignal):
         if hasattr(self.times, 'units'):
             unit = list(self.times.units.dimensionality.keys())[0].name
             ax.set_xlabel((unit + 's').capitalize())
-
         if channel_ticks is not None and channel_ticks in self.channels.columns:
             self.annotate_channels(ax, channel_ticks)
+
+        if callback is not None:
+            callback(self, ax)
+
         if filename is not None:
             figure.savefig(filename)
             if fig is None:
