@@ -157,16 +157,15 @@ class Summary:
             pickle.dump(other, f)
 
     def plot(self, vmin=None, vmax=None, dpi=100, figure=None, figargs={},
-             stattitle=None, **events):
-        fig, axes = plt.subplot_mosaic([list(self.stats.keys())],
-                                       figsize=(7 * len(self.stats), 3),
-                                       dpi=dpi, layout="constrained")
+             stattitle=None, cmap=None, **events):
+        fig, axes = plt.subplot_mosaic([list(self.stats.keys())], dpi=dpi,
+                                       figsize=(4 * len(self.stats), 3))
         for stat, ax in axes.items():
             name = stat
             if stattitle is not None:
                 name = stattitle(stat, self.stats[stat])
-            self.stats[stat].plot(ax=ax, fig=fig, title=name, vmin=vmin,
-                                  vmax=vmax)
+            self.stats[stat].plot(ax=ax, cmap=cmap, events=events, fig=fig,
+                                  title=name, vmin=vmin, vmax=vmax)
 
         plt.show()
         if figure is not None:
