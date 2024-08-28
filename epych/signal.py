@@ -360,6 +360,16 @@ class EvokedSignal(EpochedSignal):
                 plt.close(figure)
 
     def plot(self, *args, **kwargs):
+        if "events" in kwargs:
+            events = kwargs.pop("events")
+            def callback(self, ax):
+                for (event, (time, color)) in events.items():
+                    ymin, ymax = ax.get_ybound()
+                    xtime = self.sample_at(time)
+                    ax.vlines(xtime, ymin, ymax, colors=color,
+                              linestyles='dashed', label=event)
+                    ax.annotate(event, (xtime + 0.005, ymax))
+            kwargs["callback"] = callback
         return self.line_plot(*args, **kwargs)
 
 class RawSignal(Signal):
