@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 import copy
+import glob
 import hdf5storage as mat
 import matplotlib.pyplot as plt
 import numpy as np
@@ -200,7 +201,8 @@ class Summary:
         with open(path + "/summary.pickle", mode="rb") as f:
             self = pickle.load(f)
         self._stats = {}
-        ls = [entry.name for entry in os.scandir(path) if entry.is_dir()]
+        ls = [entry.name for entry in os.scandir(path) if entry.is_dir()
+              if glob.glob(path + "/" + entry.name + "/*.pickle")]
         for entry in sorted(ls):
             self._stats[entry] = statistic_cls.unpickle(path + "/" + entry)
         self._statistic = statistic_cls
