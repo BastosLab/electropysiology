@@ -158,8 +158,10 @@ class Summary:
             pickle.dump(other, f)
 
     def plot(self, vmin=None, vmax=None, dpi=100, figure=None, figargs={},
-             stattitle=None, cmap=None, events={}, **kwargs):
-        fig, axes = plt.subplot_mosaic([list(self.stats.keys())], dpi=dpi,
+             stats=None, stattitle=None, cmap=None, events={}, **kwargs):
+        if stats is None:
+            stats = list(self.stats.keys())
+        fig, axes = plt.subplot_mosaic([stats], dpi=dpi,
                                        figsize=(4 * len(self.stats), 3))
         for stat, ax in axes.items():
             name = stat
