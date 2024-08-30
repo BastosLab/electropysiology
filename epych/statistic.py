@@ -172,6 +172,9 @@ class Summary:
 
         plt.show()
         if figure is not None:
+            figdir = os.path.dirname(os.path.abspath(figure))
+            if not os.path.isdir(figdir):
+                os.makedirs(figdir)
             fig.savefig(figure, **figargs)
         plt.close(fig)
 
