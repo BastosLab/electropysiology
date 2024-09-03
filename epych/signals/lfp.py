@@ -49,6 +49,8 @@ class EpochedLfp(LocalFieldPotential, signal.EpochedSignal):
         assert len(data.shape) == 3
         assert len(channels) == data.shape[0]
         assert len(timestamps) == data.shape[1]
+        assert hasattr(data, "units")
+        assert timestamps.units == dt.units
 
         super(EpochedLfp, self).__init__(channels, data, dt, timestamps)
 
