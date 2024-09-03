@@ -384,6 +384,8 @@ class RawSignal(Signal):
         assert len(data.shape) == 2
         assert len(channels) == data.shape[channels_dim]
         assert len(timestamps) == data.shape[time_dim]
+        assert hasattr(data, "units")
+        assert timestamps.units == dt.units
 
         self._channels_dim = channels_dim
         self._time_dim = time_dim
@@ -397,7 +399,8 @@ class RawSignal(Signal):
             trials_data.append(self[start:end])
         trials_samples = min(data.shape[1] for data in trials_data)
         trials_data = [data[:, :trials_samples] for data in trials_data]
-        trials_data = np.concatenate(trials_data, axis=-1)
+        units = trials_data[0].units
+        trials_data = np.concatenate(trials_data, axis=-1) * units
         timestamps = np.arange(trials_data.shape[1]) * self.dt + time_shift
         return self.epoched_signal(self.channels, trials_data, self.dt,
                                    timestamps)
