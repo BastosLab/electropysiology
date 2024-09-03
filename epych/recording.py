@@ -196,8 +196,10 @@ class RawRecording(Sampling):
         else:
             epochs = targets
         assert len(targets) == len(epochs)
-        befores = (targets["start"].values - epochs["start"].values).mean() + before
-        afters = (epochs["end"].values - targets["end"].values).mean() + after
+        befores = (targets["start"].values - epochs["start"].values).mean()
+        befores = (befores + before.magnitude) * before.units
+        afters = (epochs["end"].values - targets["end"].values).mean()
+        afters = (afters + after.magnitude) * after.units
         onsets, offsets = targets["start"] - befores, targets["end"] + afters
 
         epoch_intervals = np.stack((onsets.values, offsets.values), axis=-1)
@@ -215,8 +217,10 @@ class RawRecording(Sampling):
                 }
                 trials.append({
                     "trial": t,
-                    inner.type + "_start": inner.start - befores,
-                    inner.type + "_end": inner.end - befores,
+                    inner.type + "_start":
+                        (inner.start - befores.magnitude) * before.units,
+                    inner.type + "_end":
+                        (inner.end - befores.magnitude) * before.units,
                     **remainder
                 })
         trial_columns = [set(trial.keys()) for trial in trials]
