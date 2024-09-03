@@ -117,6 +117,8 @@ class EpochedSignal(Signal):
         assert len(data.shape) == 3
         assert len(channels) == data.shape[0]
         assert len(timestamps) == data.shape[1]
+        assert hasattr(data, "units")
+        assert timestamps.units == dt.units
 
         super().__init__(channels, data, dt, timestamps)
 
@@ -217,10 +219,11 @@ class EpochedSignal(Signal):
         self.channels.to_csv(path + '/channels.csv')
 
         mat.savemat(path + '/epoched_signal.mat', {
-            "data": self.data, "timestamps": self.times
+            "data": self.data.magnitude, "timestamps": self.times.magnitude
         })
         other = copy.copy(self)
         other._channels = other._data = other._timestamps = None
+        other._units = {"data": self.data.units, "timestamps": self.times.units}
         with open(path + "/epoched_signal.pickle", mode="wb") as f:
             pickle.dump(other, f)
 
@@ -265,9 +268,10 @@ class EpochedSignal(Signal):
             self = pickle.load(f)
 
         arrays = mat.loadmat(path + '/epoched_signal.mat')
-        self._timestamps = arrays['timestamps']
-        self._data = arrays['data']
+        self._timestamps = arrays['timestamps'] * self._units["timestamps"]
+        self._data = arrays['data'] * self._units["data"]
         self._channels = pd.read_csv(path + '/channels.csv', index_col=0)
+        del self._units
         return self
 
 def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
