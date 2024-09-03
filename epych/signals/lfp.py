@@ -88,6 +88,8 @@ class RawLfp(LocalFieldPotential, signal.RawSignal):
         assert len(data.shape) == 2
         assert len(channels) == data.shape[channels_dim]
         assert len(timestamps) == data.shape[time_dim]
+        assert hasattr(data, "units")
+        assert timestamps.units == dt.units
 
         self._channels_dim = channels_dim
         self._time_dim = time_dim
