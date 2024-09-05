@@ -181,6 +181,11 @@ class RawRecording(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def epoch(self, inner_epochs, outer_epochs=None, before=0., after=0.):
+        assert hasattr(after, "units")
+        assert hasattr(before, "units")
+        after = after.rescale(self.units["start"])
+        before = before.rescale(self.units["end"])
+
         targets = self.intervals.loc[inner_epochs]
         if outer_epochs is not None:
             parent = self.intervals.loc[outer_epochs]
@@ -197,9 +202,9 @@ class RawRecording(Sampling):
             epochs = targets
         assert len(targets) == len(epochs)
         befores = (targets["start"].values - epochs["start"].values).mean()
-        befores = (befores + before.magnitude) * before.units
+        befores = befores * self.units["start"] + before
         afters = (epochs["end"].values - targets["end"].values).mean()
-        afters = (afters + after.magnitude) * after.units
+        afters = afters * self.units["end"] + after
         onsets, offsets = targets["start"] - befores, targets["end"] + afters
 
         epoch_intervals = np.stack((onsets.values, offsets.values), axis=-1)
@@ -217,10 +222,8 @@ class RawRecording(Sampling):
                 }
                 trials.append({
                     "trial": t,
-                    inner.type + "_start":
-                        (inner.start - befores.magnitude) * before.units,
-                    inner.type + "_end":
-                        (inner.end - befores.magnitude) * before.units,
+                    inner.type + "_start": inner.start - befores.magnitude,
+                    inner.type + "_end": inner.end - befores.magnitude,
                     **remainder
                 })
         trial_columns = [set(trial.keys()) for trial in trials]
