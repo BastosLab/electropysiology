@@ -200,9 +200,10 @@ class EpochedSignal(Signal):
             self._data[:, last:, trial] *= 0
 
     def median_filter(self, cs=3):
-        return self.fmap(
-            lambda data: scipy.ndimage.median_filter(data, size=(cs, 1, 1))
-        )
+        def units_medfilt(data):
+            result = scipy.ndimage.median_filter(data, size=(cs, 1, 1))
+            return result * data.units
+        return self.fmap(units_medfilt)
 
     @property
     def num_channels(self):
