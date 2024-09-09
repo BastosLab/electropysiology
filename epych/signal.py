@@ -141,7 +141,8 @@ class EpochedSignal(Signal):
 
     def baseline_correct(self, start, stop):
         start, stop = self.sample_at(start), self.sample_at(stop) - 1
-        f = lambda data: data - data[:, start:stop].mean(axis=1, keepdims=True)
+        def f(data):
+            return data - data[:, start:stop].mean(axis=1)[:, np.newaxis, :]
         return self.fmap(f)
 
     @property
