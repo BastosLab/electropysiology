@@ -245,7 +245,9 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
 
     def result(self):
         if not self._result:
-            ldata, rdata = self.data["left"].data, self.data["right"].data
+            lunits = self.data["left"].data.units
+            ldata = self.data["left"].data.magnitude
+            rdata = self.data["right"].data.rescale(lunits).magnitude
 
             dfd = ldata.shape[-1] + rdata.shape[-2] - 2
             threshold = scipy.stats.f.ppf(1 - self.alpha / 2,
@@ -266,7 +268,8 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
             self._result = {
                 "mask": mask,
                 "signal": self.data["left"].__class__(
-                    self.data["left"].channels, (lmean - rmean)[:, :, np.newaxis],
+                    self.data["left"].channels,
+                    (lmean - rmean)[:, :, np.newaxis] * lunits,
                     self.data["left"].dt, self.data["left"].times
                 ).evoked()
             }
