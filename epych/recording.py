@@ -248,13 +248,15 @@ class EvokedSampling(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def plot(self, alphas={}, vmin=None, vmax=None, dpi=100, figure=None,
-             figargs={}, sigtitle=None, cmap=None, **events):
+             figargs={}, sigtitle=None, cmap=None, signals=None, **events):
+        if signals is None:
+            signals = list(self.signals.keys())
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
         if hasattr(timespan, "units"):
             timespan = timespan.magnitude
-        fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
-                                       figsize=(timespan, 3), dpi=dpi)
+        fig, axes = plt.subplot_mosaic([signals], figsize=(timespan, 3),
+                                       dpi=dpi)
 
         for sig, ax in axes.items():
             name = sig
