@@ -181,6 +181,11 @@ class RawRecording(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def epoch(self, inner_epochs, outer_epochs=None, before=0., after=0.):
+        assert hasattr(after, "units")
+        assert hasattr(before, "units")
+        after = after.rescale(self.units["start"])
+        before = before.rescale(self.units["end"])
+
         targets = self.intervals.loc[inner_epochs]
         if outer_epochs is not None:
             parent = self.intervals.loc[outer_epochs]
@@ -196,8 +201,10 @@ class RawRecording(Sampling):
         else:
             epochs = targets
         assert len(targets) == len(epochs)
-        befores = (targets["start"].values - epochs["start"].values).mean() + before
-        afters = (epochs["end"].values - targets["end"].values).mean() + after
+        befores = (targets["start"].values - epochs["start"].values).mean()
+        befores = befores * self.units["start"] + before
+        afters = (epochs["end"].values - targets["end"].values).mean()
+        afters = afters * self.units["end"] + after
         onsets, offsets = targets["start"] - befores, targets["end"] + afters
 
         epoch_intervals = np.stack((onsets.values, offsets.values), axis=-1)
@@ -215,8 +222,8 @@ class RawRecording(Sampling):
                 }
                 trials.append({
                     "trial": t,
-                    inner.type + "_start": inner.start - befores,
-                    inner.type + "_end": inner.end - befores,
+                    inner.type + "_start": inner.start - befores.magnitude,
+                    inner.type + "_end": inner.end - befores.magnitude,
                     **remainder
                 })
         trial_columns = [set(trial.keys()) for trial in trials]
@@ -241,13 +248,15 @@ class EvokedSampling(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def plot(self, alphas={}, vmin=None, vmax=None, dpi=100, figure=None,
-             figargs={}, sigtitle=None, cmap=None, **events):
+             figargs={}, sigtitle=None, cmap=None, signals=None, **events):
+        if signals is None:
+            signals = list(self.signals.keys())
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
                              self.signals.values()]).sum() * 4
         if hasattr(timespan, "units"):
             timespan = timespan.magnitude
-        fig, axes = plt.subplot_mosaic([[sig for sig in self.signals]],
-                                       figsize=(timespan, 3), dpi=dpi)
+        fig, axes = plt.subplot_mosaic([signals], figsize=(timespan, 3),
+                                       dpi=dpi)
 
         for sig, ax in axes.items():
             name = sig

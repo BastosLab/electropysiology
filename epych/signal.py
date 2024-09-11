@@ -117,6 +117,8 @@ class EpochedSignal(Signal):
         assert len(data.shape) == 3
         assert len(channels) == data.shape[0]
         assert len(timestamps) == data.shape[1]
+        assert hasattr(data, "units")
+        assert timestamps.units == dt.units
 
         super().__init__(channels, data, dt, timestamps)
 
@@ -139,7 +141,8 @@ class EpochedSignal(Signal):
 
     def baseline_correct(self, start, stop):
         start, stop = self.sample_at(start), self.sample_at(stop) - 1
-        f = lambda data: data - data[:, start:stop].mean(axis=1, keepdims=True)
+        def f(data):
+            return data - data[:, start:stop].mean(axis=1)[:, np.newaxis, :]
         return self.fmap(f)
 
     @property
@@ -164,9 +167,7 @@ class EpochedSignal(Signal):
         return self.__class__(self.channels, data, self.dt, timestamps)
 
     def evoked(self):
-        data = self.data.magnitude if hasattr(self.data, 'magnitude')\
-               else self.data
-        data = data.mean(-1, keepdims=True)
+        data = self.data.magnitude.mean(-1, keepdims=True) * self.data.units
         return EvokedSignal(self.channels, data, self.dt, self.times)
 
     def get_data(self, channels, times, trials):
@@ -198,9 +199,10 @@ class EpochedSignal(Signal):
             self._data[:, last:, trial] *= 0
 
     def median_filter(self, cs=3):
-        return self.fmap(
-            lambda data: scipy.ndimage.median_filter(data, size=(cs, 1, 1))
-        )
+        def units_medfilt(data):
+            result = scipy.ndimage.median_filter(data, size=(cs, 1, 1))
+            return result * data.units
+        return self.fmap(units_medfilt)
 
     @property
     def num_channels(self):
@@ -217,10 +219,11 @@ class EpochedSignal(Signal):
         self.channels.to_csv(path + '/channels.csv')
 
         mat.savemat(path + '/epoched_signal.mat', {
-            "data": self.data, "timestamps": self.times
+            "data": self.data.magnitude, "timestamps": self.times.magnitude
         })
         other = copy.copy(self)
         other._channels = other._data = other._timestamps = None
+        other._units = {"data": self.data.units, "timestamps": self.times.units}
         with open(path + "/epoched_signal.pickle", mode="wb") as f:
             pickle.dump(other, f)
 
@@ -265,9 +268,10 @@ class EpochedSignal(Signal):
             self = pickle.load(f)
 
         arrays = mat.loadmat(path + '/epoched_signal.mat')
-        self._timestamps = arrays['timestamps']
-        self._data = arrays['data']
+        self._timestamps = arrays['timestamps'] * self._units["timestamps"]
+        self._data = arrays['data'] * self._units["data"]
         self._channels = pd.read_csv(path + '/channels.csv', index_col=0)
+        del self._units
         return self
 
 def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
@@ -380,6 +384,8 @@ class RawSignal(Signal):
         assert len(data.shape) == 2
         assert len(channels) == data.shape[channels_dim]
         assert len(timestamps) == data.shape[time_dim]
+        assert hasattr(data, "units")
+        assert timestamps.units == dt.units
 
         self._channels_dim = channels_dim
         self._time_dim = time_dim
@@ -393,7 +399,8 @@ class RawSignal(Signal):
             trials_data.append(self[start:end])
         trials_samples = min(data.shape[1] for data in trials_data)
         trials_data = [data[:, :trials_samples] for data in trials_data]
-        trials_data = np.concatenate(trials_data, axis=-1)
+        units = trials_data[0].units
+        trials_data = np.concatenate(trials_data, axis=-1) * units
         timestamps = np.arange(trials_data.shape[1]) * self.dt + time_shift
         return self.epoched_signal(self.channels, trials_data, self.dt,
                                    timestamps)

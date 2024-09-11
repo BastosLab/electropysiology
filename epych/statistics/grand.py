@@ -48,11 +48,21 @@ class GrandConcatenation(statistic.Statistic[T]):
             for column in running["channels"].columns:
                 if running["channels"][column].values.dtype == np.int64:
                     running["channels"][column] += channels[column]
+        assert hasattr(self._dt, "units")
 
         running["k"] += 1
-        running["cat"] = data if running["cat"] is None else\
-                         np.concatenate((running["cat"], data), axis=-1)
-        running["timestamps"] += element.times[:self.num_times]
+        if running["cat"] is None:
+            running["cat"] = data
+        else:
+            data = data.rescale(running["cat"].units)
+            running["cat"] = np.concatenate((running["cat"], data), axis=-1) *\
+                             data.units
+        times = element.times[:self.num_times]
+        if not hasattr(running["timestamps"], "units"):
+            running["timestamps"] = running["timestamps"] * times.units
+        else:
+            times = times.rescale(running["timestamps"].units)
+        running["timestamps"] += times
         return running
 
     @property
@@ -235,7 +245,9 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
 
     def result(self):
         if not self._result:
-            ldata, rdata = self.data["left"].data, self.data["right"].data
+            lunits = self.data["left"].data.units
+            ldata = self.data["left"].data.magnitude
+            rdata = self.data["right"].data.rescale(lunits).magnitude
 
             dfd = ldata.shape[-1] + rdata.shape[-2] - 2
             threshold = scipy.stats.f.ppf(1 - self.alpha / 2,
@@ -256,7 +268,8 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
             self._result = {
                 "mask": mask,
                 "signal": self.data["left"].__class__(
-                    self.data["left"].channels, (lmean - rmean)[:, :, np.newaxis],
+                    self.data["left"].channels,
+                    (lmean - rmean)[:, :, np.newaxis] * lunits,
                     self.data["left"].dt, self.data["left"].times
                 ).evoked()
             }
