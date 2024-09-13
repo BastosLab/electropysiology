@@ -48,7 +48,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
         if self.data is None:
             return np.moveaxis(psd, 0, 1)[:, :, np.newaxis]
-        return np.concatenate((self.data, tfrs), axis=-1)
+        return np.concatenate((self.data, psd), axis=-1)
 
     def band_power(self, fbottom, ftop):
         ibot = np.nanargmin((self.freqs - fbottom) ** 2)
