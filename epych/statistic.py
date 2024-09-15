@@ -94,10 +94,18 @@ class ChannelwiseStatistic(Statistic[T]):
         os.makedirs(path, exist_ok=True)
 
         self.channels.to_csv(path + "/channels.csv")
-        arrays = {k: v for k, v in self.__dict__.items()
-                  if isinstance(v, np.ndarray)}
-        mat.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
+
+        arrays = {}
         other = copy.copy(self)
+        other._units = {}
+        for k, v in self.__dict__.items():
+            if isinstance(v, np.ndarray):
+                if hasattr(v, "units"):
+                    other._units[k] = v.units
+                    arrays[k] = v.magnitude
+                else:
+                    arrays[k] = v
+        mat.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
         for k in arrays:
             setattr(other, k, None)
         pickle_filename = path + ("/%s.pickle" % self.__class__.__name__)
