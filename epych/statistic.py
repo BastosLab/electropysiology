@@ -123,11 +123,11 @@ class ChannelwiseStatistic(Statistic[T]):
         with open(path + ("/%s.pickle" % cls.__name__), mode="rb") as f:
             self = pickle.load(f)
 
-        arrays = mat.loadmat(path + ("/%s.mat" % self.__class__.name))
+        arrays = mat.loadmat(path + ("/%s.mat" % self.__class__.__name__))
         for k in arrays:
-            setattr(self, k, arrays[k])
+            v = arrays[k] * self._units[k] if k in self._units else arrays[k]
+            setattr(self, k, v)
         self._channels = pd.read_csv(path + "/channels.csv", index_col=0)
-        self._channels["location"] = self._channels["location"].apply(eval)
         return self
 
 
