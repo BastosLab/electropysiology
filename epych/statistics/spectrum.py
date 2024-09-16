@@ -13,13 +13,12 @@ ALPHA_BETA_BAND = (8. * pq.Hz, 30. * pq.Hz)
 GAMMA_BAND = (50. * pq.Hz, 150. * pq.Hz)
 
 class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
-    def __init__(self, df, channels, f0, fmax=150, taper=None, data=None):
+    def __init__(self, df, channels, f0, fmax=150, data=None):
         if not hasattr(fmax, "units"):
             fmax = np.array(fmax) * pq.Hz
         self._df = df.rescale("Hz")
         self._f0 = f0.rescale("Hz")
         self._fmax = fmax * pq.Hz
-        self._taper = taper
         super().__init__(channels, (int((fmax / df).item()),), data=data)
 
     def apply(self, element: signal.EpochedSignal):
