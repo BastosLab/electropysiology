@@ -37,17 +37,17 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         cfg = spy.get_defaults(spy.freqanalysis)
         cfg.foi = self.freqs.magnitude.squeeze()
         cfg.ft_compat = True
-        cfg.keeptrials = 'no'
+        cfg.keeptrials = 'yes'
         cfg.method = 'mtmfft'
         cfg.output = 'pow'
         cfg.t_ftimwin = 0.25
         cfg.taper = self._taper
         cfg.tapsmofrq = 4
         cfg.toi = "all"
-        psd = spy.freqanalysis(cfg, data).show()
+        psd = np.stack(spy.freqanalysis(cfg, data).show(), axis=-1)
 
         if self.data is None:
-            return np.moveaxis(psd, 0, 1)[:, :, np.newaxis]
+            return np.moveaxis(psd, 0, 1)
         return np.concatenate((self.data, psd), axis=-1)
 
     def band_power(self, fbottom, ftop):
@@ -113,3 +113,6 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def relative(self):
         max_pow = self.data.max(axis=0, keepdims=True)
         return self.fmap(lambda vals: vals / max_pow)
+
+    def result(self):
+        return self.data.mean(axis=-1)
