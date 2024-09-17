@@ -146,7 +146,7 @@ class Sampling(abc.Sequence):
         inner_intervals = self.intervals.loc[inner_intervals]
         intervals = np.stack((onsets, offsets), axis=-1)
         return self.__class__(inner_intervals, self.trials, self.units,
-                              **{k: v.epoch(intervals) for k, v
+                              **{k: v.epoch(intervals, -before) for k, v
                               in self.signals.items()})
 
     @property
