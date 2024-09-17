@@ -233,4 +233,5 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     @property
     def times(self):
-        return np.stack([times.magnitude for _, times in self.data], axis=-1).mean(-1)
+        times = np.stack([times.magnitude for _, times in self.data],axis=-1)
+        return times.mean(-1)
