@@ -30,7 +30,9 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         assert element.f0 >= self.f0
 
         channels = [str(ch) for ch in list(self.channels.index.values)]
-        xs = mne.EpochsArray(np.moveaxis(element.data.magnitude, -1, 0),
+        xs = element.data.magnitude - element.data.magnitude.mean(axis=-1,
+                                                                  keepdims=True)
+        xs = mne.EpochsArray(np.moveaxis(xs, -1, 0),
                              mne.create_info(channels, self.f0.item()),
                              tmin=element.times[0].item())
         data = spy.mne_epochs_to_tldata(xs)
@@ -40,7 +42,9 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         cfg.keeptrials = 'yes'
         cfg.method = 'mtmfft'
         cfg.output = 'pow'
-        cfg.t_ftimwin = 0.25
+        cfg.parallel = True
+        cfg.polyremoval = 0
+        cfg.t_ftimwin = 0.4
         cfg.taper = self._taper
         cfg.tapsmofrq = 4
         cfg.toi = "all"
