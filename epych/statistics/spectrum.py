@@ -197,8 +197,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             ftop = self.fmax.item()
         freqs = self.data[0][0].freq
         time = self.times
-        tfrs = self.result(baseline=baseline, channel_mean=True, decibels=True,
-                           trial_mean=True)
+        tfrs = self.result(baseline=baseline, channel_mean=True,
+                           trial_mean=True) * 100
         boundary = max(abs(tfrs.min()), abs(tfrs.max()))
         plotting.heatmap(fig, ax, tfrs.T, title="Time Frequency Representation",
                          vmin=-boundary, vmax=boundary)
@@ -221,7 +221,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
-            tfrs = tfrs / tfrs[:, first:last, :, :].mean(axis=1, keepdims=True)
+            base_mean = tfrs[:, first:last, :, :].mean(axis=1, keepdims=True)
+            tfrs = (tfrs - base_mean) / base_mean
         if decibels:
             tfrs = 10 * np.log10(tfrs)
         if channel_mean:
