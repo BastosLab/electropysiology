@@ -192,7 +192,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                     self.data[1] + element.times)
 
     def closest_freq(self, f):
-        return np.nanargmin((self.freqs - f) ** 2)
+        return np.nanargmin(np.abs(self.freqs - f))
 
     @property
     def df(self):
