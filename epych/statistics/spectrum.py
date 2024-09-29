@@ -6,8 +6,11 @@ import numpy as np
 import quantities as pq
 import scipy.fft as fft
 import syncopy as spy
+from tqdm import tqdm
 
 from .. import plotting, signal, statistic
+
+mne.set_log_level("CRITICAL")
 
 THETA_BAND = (1. * pq.Hz, 4. * pq.Hz)
 ALPHA_BETA_BAND = (8. * pq.Hz, 30. * pq.Hz)
@@ -122,13 +125,16 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         return self.data.mean(axis=-1)
 
 class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
-    def __init__(self, df, channels, f0, fmax=150, taper=None, data=None):
+    def __init__(self, df, channels, f0, chunk_trials=4, fmax=150, taper=None,
+                 data=None):
         if not hasattr(fmax, "units"):
             fmax = np.array(fmax) * pq.Hz
+        self._chunk_trials = chunk_trials
         self._df = df.rescale("Hz")
         self._f0 = f0.rescale("Hz")
         self._freqs = np.arange(0, fmax.item(), df.item())
         self._freqs = (self._freqs + df.item()) * df.units
+        self._k = 0
         self._taper = taper
         super().__init__(channels, (int((fmax / df).item()),), data=data)
 
@@ -137,32 +143,58 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         assert element.df == self.df
         assert element.f0 >= self.f0
 
+        element_data = []
         channels = [str(ch) for ch in list(self.channels.index.values)]
         xs = element.data.magnitude - element.data.magnitude.mean(axis=-1,
                                                                   keepdims=True)
-        xs = mne.EpochsArray(np.moveaxis(xs, -1, 0),
-                             mne.create_info(channels, self.f0.item()),
-                             proj=False, tmin=element.times[0].item())
-        data = spy.mne_epochs_to_tldata(xs)
-        cfg = spy.get_defaults(spy.freqanalysis)
-        cfg.foi = self.freqs.magnitude.squeeze()
-        cfg.ft_compat = True
-        cfg.keeptrials = 'yes'
-        cfg.method = 'mtmconvol'
-        cfg.output = 'pow'
-        cfg.parallel = True
-        cfg.polyremoval = 0
-        cfg.t_ftimwin = 0.4
-        cfg.taper = self._taper
-        cfg.tapsmofrq = 4
-        cfg.toi = "all"
-        tfr = spy.freqanalysis(cfg, data)
+        for c in tqdm(range(0, element.num_trials, self._chunk_trials)):
+            trials = slice(c, c + self._chunk_trials)
+            trial_xs = mne.EpochsArray(
+                np.moveaxis(xs[:, :, trials], -1, 0),
+                mne.create_info(channels, self.f0.item()), proj=False,
+                tmin=element.times[0].item()
+            )
 
-        element_data = [(tfr, element.times)]
-        return (self.data if self.data is not None else []) + element_data
+            data = spy.mne_epochs_to_tldata(trial_xs)
+            cfg = spy.get_defaults(spy.freqanalysis)
+            cfg.foi = self.freqs.magnitude.squeeze()
+            cfg.ft_compat = True
+            cfg.keeptrials = 'yes'
+            cfg.method = 'mtmconvol'
+            cfg.output = 'pow'
+            cfg.parallel = True
+            cfg.polyremoval = 0
+            cfg.t_ftimwin = 0.4
+            cfg.taper = self._taper
+            cfg.tapsmofrq = 4
+            cfg.toi = "all"
+            tfr = spy.freqanalysis(cfg, data)
+
+            tfrs = tfr.show()
+            if isinstance(tfrs, list):
+                tfrs = np.stack(tfrs, axis=-1)
+            else:
+                tfrs = tfrs[:, :, :, np.newaxis]
+            tfrs = np.moveaxis(tfrs, 2, 0)
+            assert len(tfrs.shape) == 4
+            element_data.append(tfrs)
+
+            del tfr
+            del data
+            del trial_xs
+            spy.clear()
+            spy.cleanup(interactive=False)
+
+        element_data = np.concatenate(element_data, axis=-1)
+        self._k += 1
+        if self.data is None:
+            return (element_data, element.times)
+        else:
+            return (np.concatenate((self.data[0], element_data), axis=-1),
+                    self.data[1] + element.times)
 
     def closest_freq(self, f):
-        return np.nanargmin((self.freqs - f) ** 2)
+        return np.nanargmin(np.abs(self.freqs - f))
 
     @property
     def df(self):
@@ -215,9 +247,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     def result(self, baseline=None, channel_mean=True, decibels=False,
                trial_mean=True):
-        tfrs = np.concatenate([np.stack(tfr.show(), axis=0)
-                               for (tfr, _) in self.data], axis=0)
-        tfrs = tfrs.swapaxes(0, -1)
+        tfrs = self.data[0].swapaxes(0, -1)
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
@@ -233,5 +263,4 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     @property
     def times(self):
-        times = np.stack([times.magnitude for _, times in self.data],axis=-1)
-        return times.mean(-1)
+        return self.data[1].magnitude / self._k
