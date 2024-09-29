@@ -10,6 +10,8 @@ from tqdm import tqdm
 
 from .. import plotting, signal, statistic
 
+mne.set_log_level("CRITICAL")
+
 THETA_BAND = (1. * pq.Hz, 4. * pq.Hz)
 ALPHA_BETA_BAND = (8. * pq.Hz, 30. * pq.Hz)
 GAMMA_BAND = (50. * pq.Hz, 150. * pq.Hz)
