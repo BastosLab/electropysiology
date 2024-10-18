@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
+import os
 import quantities as pq
 import scipy.fft as fft
 import syncopy as spy
@@ -169,29 +170,22 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             cfg.tapsmofrq = 4
             cfg.toi = "all"
             tfr = spy.freqanalysis(cfg, data)
+            path, ext = os.path.splitext(tfr.filename)
+            tfr.save(filename=path + "_" + str(c) + ext)
+            tfr._close()
 
-            tfrs = tfr.show()
-            if isinstance(tfrs, list):
-                tfrs = np.stack(tfrs, axis=-1)
-            else:
-                tfrs = tfrs[:, :, :, np.newaxis]
-            tfrs = np.moveaxis(tfrs, 2, 0)
-            assert len(tfrs.shape) == 4
-            element_data.append(tfrs)
+            element_data.append(tfr.filename)
 
-            del tfr
+
             del data
             del trial_xs
-            spy.clear()
             spy.cleanup(interactive=False)
 
-        element_data = np.concatenate(element_data, axis=-1)
         self._k += 1
         if self.data is None:
             return (element_data, element.times)
         else:
-            return (np.concatenate((self.data[0], element_data), axis=-1),
-                    self.data[1] + element.times)
+            return (self.data[0] + element_data, self.data[1] + element.times)
 
     def closest_freq(self, f):
         return np.nanargmin(np.abs(self.freqs - f))
@@ -247,7 +241,19 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     def result(self, baseline=None, channel_mean=True, decibels=False,
                trial_mean=True):
-        tfrs = self.data[0].swapaxes(0, -1)
+        tfr_data = []
+        for element in self.data[0]:
+            for tfr in element:
+                tfrs = spy.load(tfr).show()
+                if isinstance(tfrs, list):
+                    tfrs = np.stack(tfrs, axis=-1)
+                else:
+                    tfrs = tfrs[:, :, :, np.newaxis]
+                tfrs = np.moveaxis(tfrs, 2, 0)
+                assert len(tfrs.shape) == 4
+                tfr_data.append(tfrs)
+        tfrs = np.concatenate(tfr_data, axis=-1).swapaxes(0, -1)
+
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
@@ -263,4 +269,4 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     @property
     def times(self):
-        return self.data[1].magnitude / self._k
+        return self.data[1] / self._k
