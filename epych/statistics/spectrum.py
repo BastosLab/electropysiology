@@ -127,7 +127,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
 class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def __init__(self, df, channels, f0, chunk_trials=4, fmax=150, taper=None,
-                 data=None):
+                 data=None, path=None):
         if not hasattr(fmax, "units"):
             fmax = np.array(fmax) * pq.Hz
         self._chunk_trials = chunk_trials
@@ -137,6 +137,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         self._freqs = (self._freqs + df.item()) * df.units
         self._k = 0
         self._taper = taper
+        self._path = path
         super().__init__(channels, (int((fmax / df).item()),), data=data)
 
     def apply(self, element: signal.EpochedSignal):
@@ -171,7 +172,9 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             cfg.toi = "all"
             tfr = spy.freqanalysis(cfg, data)
             path, ext = os.path.splitext(tfr.filename)
-            tfr.save(filename=path + "_" + str(c) + ext)
+            if self.path:
+                path = self.path
+            tfr.save(filename=path + "/tfr_" + str(c) + ext)
             tfr._close()
 
             element_data.append(tfr.filename)
@@ -243,15 +246,14 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                trial_mean=True):
         tfr_data = []
         for element in self.data[0]:
-            for tfr in element:
-                tfrs = spy.load(tfr).show()
-                if isinstance(tfrs, list):
-                    tfrs = np.stack(tfrs, axis=-1)
-                else:
-                    tfrs = tfrs[:, :, :, np.newaxis]
-                tfrs = np.moveaxis(tfrs, 2, 0)
-                assert len(tfrs.shape) == 4
-                tfr_data.append(tfrs)
+            tfrs = spy.load(element).show()
+            if isinstance(tfrs, list):
+                tfrs = np.stack(tfrs, axis=-1)
+            else:
+                tfrs = tfrs[:, :, :, np.newaxis]
+            tfrs = np.moveaxis(tfrs, 2, 0)
+            assert len(tfrs.shape) == 4
+            tfr_data.append(tfrs)
         tfrs = np.concatenate(tfr_data, axis=-1).swapaxes(0, -1)
 
         if baseline is not None:
@@ -266,6 +268,10 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         if trial_mean:
             tfrs = tfrs.mean(axis=-1)
         return tfrs
+
+    @property
+    def path(self):
+        return self._path
 
     @property
     def times(self):
