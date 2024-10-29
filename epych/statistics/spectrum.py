@@ -217,8 +217,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def freqs(self):
         return self._freqs
 
-    def heatmap(self, ax=None, baseline=None, fbottom=0, fig=None, ftop=None,
-                vlim=None):
+    def heatmap(self, ax=None, baseline=None, cmap=None, fbottom=0, fig=None,
+                ftop=None, vlim=None, **events):
         if fig is None:
             width = (self.times[-1] - self.times[0]) * 4
             if hasattr(width, "units"):
@@ -233,8 +233,9 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         tfrs = self.result(baseline=baseline, channel_mean=True,
                            trial_mean=True)
         vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
-        plotting.heatmap(fig, ax, tfrs.T, title="Time Frequency Representation",
-                         vmin=-vlim, vmax=vlim)
+        plotting.heatmap(fig, ax, tfrs.T, cmap=cmap,
+                         title="Time Frequency Representation", vmin=-vlim,
+                         vmax=vlim)
 
         ax.set_xlim(0, len(time))
         xticks = [int(xtick) for xtick in ax.get_xticks()]
