@@ -258,13 +258,13 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             tfrs = np.moveaxis(tfrs, 2, 0)
             assert len(tfrs.shape) == 4
             tfr_data.append(tfrs)
-        tfrs = np.concatenate(tfr_data, axis=-1).swapaxes(0, -1)
+        tfrs = np.concatenate(tfr_data, axis=-1)
 
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
             base_mean = tfrs[:, first:last, :, :].mean(axis=1, keepdims=True)
-            tfrs = (tfrs - base_mean) / base_mean
+            tfrs = (tfrs - base_mean) / base_mean * 100
         if decibels:
             tfrs = 10 * np.log10(tfrs)
         if channel_mean:
