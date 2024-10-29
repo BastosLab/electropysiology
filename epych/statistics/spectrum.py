@@ -217,20 +217,24 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def freqs(self):
         return self._freqs
 
-    def heatmap(self, ax=None, baseline=None, fbottom=0, fig=None, ftop=None):
-        if ax is None:
-            ax = plt.gca()
+    def heatmap(self, ax=None, baseline=None, fbottom=0, fig=None, ftop=None,
+                vlim=None):
         if fig is None:
-            fig = plt.gcf()
+            width = (self.times[-1] - self.times[0]) * 4
+            if hasattr(width, "units"):
+                width = width.magnitude
+            fig = plt.figure(figsize=(width, 3))
+        if ax is None:
+            ax = fig.add_axes((1, 1, 1, 1))
         if ftop is None:
             ftop = self.fmax.item()
-        freqs = self.data[0][0].freq
+        freqs = spy.load(self.data[0][0]).freq
         time = self.times
         tfrs = self.result(baseline=baseline, channel_mean=True,
-                           trial_mean=True) * 100
-        boundary = max(abs(tfrs.min()), abs(tfrs.max()))
+                           trial_mean=True)
+        vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
         plotting.heatmap(fig, ax, tfrs.T, title="Time Frequency Representation",
-                         vmin=-boundary, vmax=boundary)
+                         vmin=-vlim, vmax=vlim)
 
         ax.set_xlim(0, len(time))
         xticks = [int(xtick) for xtick in ax.get_xticks()]
