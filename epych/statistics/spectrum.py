@@ -127,7 +127,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
 class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def __init__(self, df, channels, f0, chunk_trials=4, fmax=150, taper=None,
-                 data=None):
+                 data=None, path=None):
         if not hasattr(fmax, "units"):
             fmax = np.array(fmax) * pq.Hz
         self._chunk_trials = chunk_trials
@@ -137,6 +137,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         self._freqs = (self._freqs + df.item()) * df.units
         self._k = 0
         self._taper = taper
+        self._path = path
         super().__init__(channels, (int((fmax / df).item()),), data=data)
 
     def apply(self, element: signal.EpochedSignal):
@@ -171,7 +172,9 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             cfg.toi = "all"
             tfr = spy.freqanalysis(cfg, data)
             path, ext = os.path.splitext(tfr.filename)
-            tfr.save(filename=path + "_" + str(c) + ext)
+            if self.path:
+                path = self.path
+            tfr.save(filename=path + "/tfr_" + str(c) + ext)
             tfr._close()
 
             element_data.append(tfr.filename)
@@ -214,20 +217,25 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def freqs(self):
         return self._freqs
 
-    def heatmap(self, ax=None, baseline=None, fbottom=0, fig=None, ftop=None):
-        if ax is None:
-            ax = plt.gca()
+    def heatmap(self, ax=None, baseline=None, cmap=None, fbottom=0, fig=None,
+                ftop=None, vlim=None, **events):
         if fig is None:
-            fig = plt.gcf()
+            width = (self.times[-1] - self.times[0]) * 4
+            if hasattr(width, "units"):
+                width = width.magnitude
+            fig = plt.figure(figsize=(width, 3))
+        if ax is None:
+            ax = fig.add_axes((1, 1, 1, 1))
         if ftop is None:
             ftop = self.fmax.item()
-        freqs = self.data[0][0].freq
+        freqs = spy.load(self.data[0][0]).freq
         time = self.times
         tfrs = self.result(baseline=baseline, channel_mean=True,
-                           trial_mean=True) * 100
-        boundary = max(abs(tfrs.min()), abs(tfrs.max()))
-        plotting.heatmap(fig, ax, tfrs.T, title="Time Frequency Representation",
-                         vmin=-boundary, vmax=boundary)
+                           trial_mean=True)
+        vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
+        plotting.heatmap(fig, ax, tfrs.T, cmap=cmap,
+                         title="Time Frequency Representation", vmin=-vlim,
+                         vmax=vlim)
 
         ax.set_xlim(0, len(time))
         xticks = [int(xtick) for xtick in ax.get_xticks()]
@@ -243,22 +251,21 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                trial_mean=True):
         tfr_data = []
         for element in self.data[0]:
-            for tfr in element:
-                tfrs = spy.load(tfr).show()
-                if isinstance(tfrs, list):
-                    tfrs = np.stack(tfrs, axis=-1)
-                else:
-                    tfrs = tfrs[:, :, :, np.newaxis]
-                tfrs = np.moveaxis(tfrs, 2, 0)
-                assert len(tfrs.shape) == 4
-                tfr_data.append(tfrs)
-        tfrs = np.concatenate(tfr_data, axis=-1).swapaxes(0, -1)
+            tfrs = spy.load(element).show()
+            if isinstance(tfrs, list):
+                tfrs = np.stack(tfrs, axis=-1)
+            else:
+                tfrs = tfrs[:, :, :, np.newaxis]
+            tfrs = np.moveaxis(tfrs, 2, 0)
+            assert len(tfrs.shape) == 4
+            tfr_data.append(tfrs)
+        tfrs = np.concatenate(tfr_data, axis=-1)
 
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
             base_mean = tfrs[:, first:last, :, :].mean(axis=1, keepdims=True)
-            tfrs = (tfrs - base_mean) / base_mean
+            tfrs = (tfrs - base_mean) / base_mean * 100
         if decibels:
             tfrs = 10 * np.log10(tfrs)
         if channel_mean:
@@ -266,6 +273,13 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         if trial_mean:
             tfrs = tfrs.mean(axis=-1)
         return tfrs
+
+    @property
+    def path(self):
+        return self._path
+
+    def plot(self, *args, **kwargs):
+        return self.heatmap(*args, **kwargs)
 
     @property
     def times(self):
