@@ -278,6 +278,9 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def path(self):
         return self._path
 
+    def plot(self, *args, **kwargs):
+        return self.heatmap(*args, **kwargs)
+
     @property
     def times(self):
         return self.data[1] / self._k
