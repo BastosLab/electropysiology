@@ -73,6 +73,10 @@ class Statistic(Generic[T]):
             setattr(self, k, arrays[k])
         return self
 
+    @property
+    def plot_width(self):
+        return 1
+
 class ChannelwiseStatistic(Statistic[T]):
     def __init__(self, channels: pd.DataFrame, iid_shape,
                  data:Optional[np.ndarray]=None):
