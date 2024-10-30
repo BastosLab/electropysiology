@@ -218,23 +218,21 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         return self._freqs
 
     def heatmap(self, ax=None, baseline=None, cmap=None, fbottom=0, fig=None,
-                ftop=None, vlim=None, **events):
+                ftop=None, title=None, vlim=None, **events):
         if fig is None:
-            width = (self.times[-1] - self.times[0]) * 4
-            if hasattr(width, "units"):
-                width = width.magnitude
-            fig = plt.figure(figsize=(width, 3))
+            fig = plt.figure(figsize=(self.plot_width * 4, 3))
         if ax is None:
             ax = fig.add_axes((1, 1, 1, 1))
         if ftop is None:
             ftop = self.fmax.item()
         freqs = spy.load(self.data[0][0]).freq
         time = self.times
-        tfrs = self.result(baseline=baseline, channel_mean=True,
-                           trial_mean=True)
+        tfrs = self.result(baseline=baseline, channel_mean=True)
         vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
-        plotting.heatmap(fig, ax, tfrs.T, cmap=cmap,
-                         title="Time Frequency Representation", vmin=-vlim,
+        title = "Spectrogram" if title is None else title
+        if baseline is not None:
+            title += " (% change from baseline)"
+        plotting.heatmap(fig, ax, tfrs.T, cmap=cmap, title=title, vmin=-vlim,
                          vmax=vlim)
 
         ax.set_xlim(0, len(time))
@@ -245,41 +243,53 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         ax.set_ylim(0, tfrs.shape[-1])
         yticks = [int(ytick) for ytick in ax.get_yticks()]
         yticks[-1] = min(yticks[-1], tfrs.shape[-1] - 1)
-        ax.set_yticks(yticks, freqs[yticks])
+        ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
 
-    def result(self, baseline=None, channel_mean=True, decibels=False,
-               trial_mean=True):
-        tfr_data = []
-        for element in self.data[0]:
-            tfrs = spy.load(element).show()
-            if isinstance(tfrs, list):
-                tfrs = np.stack(tfrs, axis=-1)
+    def result(self, baseline=None, channel_mean=True, decibels=False):
+        elements = [spy.load(element) for element in self.data[0]]
+        times = elements[0].sampleinfo[:, 1] - elements[0].sampleinfo[:, 0]
+        shape = [len(elements[0].channel), int(times.mean()),
+                 len(elements[0].freq)]
+        tfrs = np.zeros(shape)
+        ntrials = 0
+        for element in elements:
+            element_tfrs = element.show()
+            if isinstance(element_tfrs, list):
+                element_tfrs = np.stack(element_tfrs, axis=-1)
             else:
-                tfrs = tfrs[:, :, :, np.newaxis]
-            tfrs = np.moveaxis(tfrs, 2, 0)
-            assert len(tfrs.shape) == 4
-            tfr_data.append(tfrs)
-        tfrs = np.concatenate(tfr_data, axis=-1)
+                element_tfrs = element_tfrs[:, :, :, np.newaxis]
+            element_tfrs = np.moveaxis(element_tfrs, 2, 0)
+            assert len(element_tfrs.shape) == 4
+            tfrs += element_tfrs.sum(axis=-1)
+            ntrials += element_tfrs.shape[-1]
+            del element_tfrs
+        del elements
+        tfrs /= ntrials
 
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
-            base_mean = tfrs[:, first:last, :, :].mean(axis=1, keepdims=True)
+            base_mean = tfrs[:, first:last, :].mean(axis=1, keepdims=True)
             tfrs = (tfrs - base_mean) / base_mean * 100
         if decibels:
             tfrs = 10 * np.log10(tfrs)
         if channel_mean:
             tfrs = tfrs.mean(axis=0)
-        if trial_mean:
-            tfrs = tfrs.mean(axis=-1)
         return tfrs
 
     @property
     def path(self):
         return self._path
 
-    def plot(self, *args, **kwargs):
-        return self.heatmap(*args, **kwargs)
+    def plot(self, *args, events={}, **kwargs):
+        return self.heatmap(*args, **kwargs, **events)
+
+    @property
+    def plot_width(self):
+        width = (self.times[-1] - self.times[0])
+        if hasattr(width, "units"):
+            width = width.magnitude
+        return width
 
     @property
     def times(self):

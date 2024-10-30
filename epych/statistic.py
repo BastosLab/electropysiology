@@ -73,6 +73,10 @@ class Statistic(Generic[T]):
             setattr(self, k, arrays[k])
         return self
 
+    @property
+    def plot_width(self):
+        return 1
+
 class ChannelwiseStatistic(Statistic[T]):
     def __init__(self, channels: pd.DataFrame, iid_shape,
                  data:Optional[np.ndarray]=None):
@@ -169,8 +173,8 @@ class Summary:
              stats=None, stattitle=None, cmap=None, events={}, **kwargs):
         if stats is None:
             stats = list(self.stats.keys())
-        fig, axes = plt.subplot_mosaic([stats], dpi=dpi,
-                                       figsize=(4 * len(self.stats), 3))
+        width = sum([self.stats[stat].plot_width for stat in stats])
+        fig, axes = plt.subplot_mosaic([stats], dpi=dpi, figsize=(4 * width, 3))
         for stat, ax in axes.items():
             name = stat
             if stattitle is not None:
