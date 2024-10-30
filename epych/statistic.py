@@ -173,8 +173,8 @@ class Summary:
              stats=None, stattitle=None, cmap=None, events={}, **kwargs):
         if stats is None:
             stats = list(self.stats.keys())
-        fig, axes = plt.subplot_mosaic([stats], dpi=dpi,
-                                       figsize=(4 * len(self.stats), 3))
+        width = sum([self.stats[stat].plot_width for stat in stats])
+        fig, axes = plt.subplot_mosaic([stats], dpi=dpi, figsize=(4 * width, 3))
         for stat, ax in axes.items():
             name = stat
             if stattitle is not None:
