@@ -149,12 +149,12 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         channels = [str(ch) for ch in list(self.channels.index.values)]
         xs = element.data.magnitude - element.data.magnitude.mean(axis=-1,
                                                                   keepdims=True)
+        tois = []
         for c in tqdm(range(0, element.num_trials, self._chunk_trials)):
             trials = slice(c, c + self._chunk_trials)
             trial_xs = mne.EpochsArray(
                 np.moveaxis(xs[:, :, trials], -1, 0),
-                mne.create_info(channels, self.f0.item()), proj=False,
-                tmin=element.times[0].item()
+                mne.create_info(channels, int(self.f0.item())), proj=False,
             )
 
             data = spy.mne_epochs_to_tldata(trial_xs)
@@ -164,13 +164,17 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             cfg.keeptrials = 'yes'
             cfg.method = 'mtmconvol'
             cfg.output = 'pow'
-            cfg.parallel = True
             cfg.polyremoval = 0
             cfg.t_ftimwin = 0.4
             cfg.taper = self._taper
-            cfg.tapsmofrq = 4
-            cfg.toi = "all"
+            # Temporal resolution of 80ms.
+            cfg.toi = np.arange(
+                0, element.times[-1].magnitude - element.times[0].magnitude,
+                0.08
+            )
+            # cfg.toi = "all"
             tfr = spy.freqanalysis(cfg, data)
+            tois.append(tfr.time[0])
             path, ext = os.path.splitext(tfr.filename)
             if self.path:
                 path = self.path
@@ -179,16 +183,17 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
             element_data.append(tfr.filename)
 
-
             del data
             del trial_xs
             spy.cleanup(interactive=False)
 
+        toi = np.array(tois).mean(axis=0) * element.times[0].units +\
+              element.times[0] + 0.2 * pq.second
         self._k += 1
         if self.data is None:
-            return (element_data, element.times)
+            return (element_data, toi)
         else:
-            return (self.data[0] + element_data, self.data[1] + element.times)
+            return (self.data[0] + element_data, self.data[1] + toi)
 
     def closest_freq(self, f):
         return np.nanargmin(np.abs(self.freqs - f))
