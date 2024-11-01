@@ -170,7 +170,8 @@ class Summary:
             pickle.dump(other, f)
 
     def plot(self, vmin=None, vmax=None, dpi=100, figure=None, figargs={},
-             stats=None, stattitle=None, cmap=None, events={}, **kwargs):
+             stats=None, stattitle=None, cmap=None, events={}, title=None,
+             **kwargs):
         if stats is None:
             stats = list(self.stats.keys())
         width = sum([self.stats[stat].plot_width for stat in stats])
@@ -182,6 +183,8 @@ class Summary:
             self.stats[stat].plot(ax=ax, cmap=cmap, events=events, fig=fig,
                                   title=name, vmin=vmin, vmax=vmax, **kwargs)
 
+        if title is not None:
+            fig.suptitle(title, fontsize=16)
         plt.show()
         if figure is not None:
             figdir = os.path.dirname(os.path.abspath(figure))
