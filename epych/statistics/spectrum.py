@@ -223,7 +223,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         return self._freqs
 
     def heatmap(self, ax=None, baseline=None, cmap=None, fbottom=0, fig=None,
-                ftop=None, title=None, vlim=None, **events):
+                ftop=None, title=None, vlim=None, vmin=None, vmax=None,
+                **events):
         if fig is None:
             fig = plt.figure(figsize=(self.plot_width * 4, 3))
         if ax is None:
@@ -231,7 +232,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         if ftop is None:
             ftop = self.fmax.item()
         freqs = spy.load(self.data[0][0]).freq
-        time = self.times
+        times = self.times
         tfrs = self.result(baseline=baseline, channel_mean=True)
         vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
         title = "Spectrogram" if title is None else title
@@ -240,15 +241,22 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         plotting.heatmap(fig, ax, tfrs.T, cmap=cmap, title=title, vmin=-vlim,
                          vmax=vlim)
 
-        ax.set_xlim(0, len(time))
+        ax.set_xlim(0, len(times))
         xticks = [int(xtick) for xtick in ax.get_xticks()]
-        xticks[-1] = min(xticks[-1], len(time) - 1)
-        ax.set_xticks(xticks, time[xticks].round(decimals=2))
+        xticks[-1] = min(xticks[-1], len(times) - 1)
+        ax.set_xticks(xticks, times[xticks].round(decimals=2))
 
         ax.set_ylim(0, tfrs.shape[-1])
         yticks = [int(ytick) for ytick in ax.get_yticks()]
         yticks[-1] = min(yticks[-1], tfrs.shape[-1] - 1)
         ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
+
+        for (event, (time, color)) in events.items():
+            ymin, ymax = ax.get_ybound()
+            xtime = np.nanargmin(np.abs(times.magnitude - time))
+            ax.vlines(xtime, ymin, ymax, colors=color,
+                      linestyles='dashed', label=event)
+            ax.annotate(event, (xtime + 0.005, ymax))
 
     def result(self, baseline=None, channel_mean=True, decibels=False):
         elements = [spy.load(element) for element in self.data[0]]
