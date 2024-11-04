@@ -282,18 +282,19 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         del elements
         tfrs = dask.array.concatenate(tfrs, axis=-1)
 
+        if channel_mean:
+            tfrs = tfrs.mean(axis=0, keepdims=True)
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
             base_mean = tfrs[:, first:last, :].mean(axis=1, keepdims=True)
             tfrs = (tfrs - base_mean) / base_mean * 100
-        if decibels:
+        elif decibels:
             tfrs = 10 * np.log10(tfrs)
         if trial_mean:
-            tfrs = tfrs.mean(axis=-1)
-        if channel_mean:
-            tfrs = tfrs.mean(axis=0)
-        return tfrs.compute()
+            tfrs = tfrs.mean(axis=-1, keepdims=True)
+
+        return tfrs.squeeze().compute()
 
     @property
     def path(self):
