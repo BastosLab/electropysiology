@@ -236,7 +236,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         times = self.times
         tfrs = self.result(baseline=baseline, channel_mean=True,
                            trial_mean=True)
-        vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
+        vlim = 2 * tfrs.std() if vlim is None else vlim
         title = "Spectrogram" if title is None else title
         if baseline is not None:
             title += " (% change from baseline)"
