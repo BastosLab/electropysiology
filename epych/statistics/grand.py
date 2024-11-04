@@ -214,7 +214,7 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
 
     def apply(self, element: tuple[T, T]):
         assert self.data["left"] is None and self.data["right"] is None
-        assert element[0].dt == element[1].dt
+        np.isclose(element[0].dt.magnitude, element[1].dt.magnitude)
         assert (element[0].channels == element[1].channels).all().all()
 
         return {"left": element[0], "right": element[1]}
