@@ -221,6 +221,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     @property
     def freqs(self):
+        if self.data:
+            return spy.load(self.data[0][0]).freq
         return self._freqs
 
     def heatmap(self, ax=None, baseline=None, cmap=None, fbottom=0, fig=None,
@@ -232,7 +234,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             ax = fig.add_axes((1, 1, 1, 1))
         if ftop is None:
             ftop = self.fmax.item()
-        freqs = spy.load(self.data[0][0]).freq
+        freqs = self.freqs
         times = self.times
         tfrs = self.result(baseline=baseline, channel_mean=True,
                            trial_mean=True)
