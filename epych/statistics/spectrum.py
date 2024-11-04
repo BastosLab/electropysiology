@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import dask.array
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
@@ -233,7 +234,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             ftop = self.fmax.item()
         freqs = spy.load(self.data[0][0]).freq
         times = self.times
-        tfrs = self.result(baseline=baseline, channel_mean=True)
+        tfrs = self.result(baseline=baseline, channel_mean=True,
+                           trial_mean=True)
         vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
         title = "Spectrogram" if title is None else title
         if baseline is not None:
@@ -258,12 +260,13 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                       linestyles='dashed', label=event)
             ax.annotate(event, (xtime + 0.005, ymax))
 
-    def result(self, baseline=None, channel_mean=True, decibels=False):
+    def result(self, baseline=None, channel_mean=True, decibels=False,
+               trial_mean=True):
         elements = [spy.load(element) for element in self.data[0]]
         times = elements[0].sampleinfo[:, 1] - elements[0].sampleinfo[:, 0]
         shape = [len(elements[0].channel), int(times.mean()),
                  len(elements[0].freq)]
-        tfrs = np.zeros(shape)
+        tfrs = []
         ntrials = 0
         for element in elements:
             element_tfrs = element.show()
@@ -273,11 +276,11 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                 element_tfrs = element_tfrs[:, :, :, np.newaxis]
             element_tfrs = np.moveaxis(element_tfrs, 2, 0)
             assert len(element_tfrs.shape) == 4
-            tfrs += element_tfrs.sum(axis=-1)
+            tfrs.append(dask.array.from_array(element_tfrs))
             ntrials += element_tfrs.shape[-1]
             del element_tfrs
         del elements
-        tfrs /= ntrials
+        tfrs = dask.array.concatenate(tfrs, axis=-1)
 
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
@@ -286,9 +289,11 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             tfrs = (tfrs - base_mean) / base_mean * 100
         if decibels:
             tfrs = 10 * np.log10(tfrs)
+        if trial_mean:
+            tfrs = tfrs.mean(axis=-1)
         if channel_mean:
             tfrs = tfrs.mean(axis=0)
-        return tfrs
+        return tfrs.compute()
 
     @property
     def path(self):
