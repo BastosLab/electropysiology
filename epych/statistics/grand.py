@@ -199,20 +199,14 @@ class GrandVariance(statistic.Statistic[T]):
                                    self.mean.times)
 
 class GrandNonparametricClusterTest(statistic.Statistic[T]):
-    def __init__(self, alignment: alignment.LaminarAlignment, alpha=0.05,
-                 data=None, partitions=1000):
-        super().__init__((alignment.num_channels, alignment.num_times),
-                         data=data)
-        self._alignment = alignment
+    def __init__(self, num_spatial_channels, num_times, alpha=0.05, data=None,
+                 partitions=1000):
+        super().__init__((num_spatial_channels, num_times), data=data)
         self._alpha = alpha
         if data is None:
             self._data = {"left": None, "right": None}
         self._partitions = partitions
         self._result = {}
-
-    @property
-    def alignment(self):
-        return self._alignment
 
     @property
     def alpha(self):
