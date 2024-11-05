@@ -114,7 +114,7 @@ class Signal(collections.abc.Sequence):
 
 class EpochedSignal(Signal):
     def __init__(self, channels: pd.DataFrame, data, dt, timestamps):
-        assert len(data.shape) == 3
+        assert len(data.shape) >= 3
         assert len(channels) == data.shape[0]
         assert len(timestamps) == data.shape[1]
         assert hasattr(data, "units")
@@ -213,7 +213,7 @@ class EpochedSignal(Signal):
 
     @property
     def num_trials(self):
-        return self.data.shape[2]
+        return self.data.shape[-1]
 
     def pickle(self, path):
         assert os.path.isdir(path) or not os.path.exists(path)
