@@ -14,10 +14,29 @@ class TimeFrequencyRepr(signal.Signal):
         self._freqs = freqs
         super().__init__(channels, data, dt, timestamps)
 
+    def baseline(self, start, end):
+        first = np.abs(self.times - start).argmin()
+        last = np.abs(self.times - end).argmin()
+        base_mean = self.data[:, first:last, :].magnitude.mean(axis=1,
+                                                               keepdims=True)
+        base_mean = base_mean * self.data.units
+        tfrs = (self.data - base_mean) / base_mean * 100 * pq.percent
+        return self.__class__(self.channels, tfrs, self.dt, self.freqs,
+                              self.times)
+
     def channel_depths(self, column=None):
         if column is not None and column in self.channels:
             return self.channels[column].values
         return np.arange(len(self.channels))
+
+    def channel_mean(self):
+        middle_channel = len(self.channels) // 2
+        channels = self.channels[middle_channel:(middle_channel + 1)]
+        data = self.data.magnitude.mean(axis=0, keepdims=True) * self.data.units
+        return self.__class__(channels, data, self.dt, self.freqs, self.times)
+
+    def decibels(self):
+        return self.fmap(lambda data: 10 * np.log10(data))
 
     @property
     def freqs(self):
