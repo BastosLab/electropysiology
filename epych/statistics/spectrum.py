@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import dask.array
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
@@ -220,6 +221,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     @property
     def freqs(self):
+        if self.data:
+            return spy.load(self.data[0][0]).freq
         return self._freqs
 
     def heatmap(self, ax=None, baseline=None, cmap=None, fbottom=0, fig=None,
@@ -231,10 +234,11 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             ax = fig.add_axes((1, 1, 1, 1))
         if ftop is None:
             ftop = self.fmax.item()
-        freqs = spy.load(self.data[0][0]).freq
+        freqs = self.freqs
         times = self.times
-        tfrs = self.result(baseline=baseline, channel_mean=True)
-        vlim = max(abs(tfrs.min()), abs(tfrs.max())) if vlim is None else vlim
+        tfrs = self.result(baseline=baseline, channel_mean=True,
+                           trial_mean=True)
+        vlim = 2 * tfrs.std() if vlim is None else vlim
         title = "Spectrogram" if title is None else title
         if baseline is not None:
             title += " (% change from baseline)"
@@ -258,12 +262,13 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                       linestyles='dashed', label=event)
             ax.annotate(event, (xtime + 0.005, ymax))
 
-    def result(self, baseline=None, channel_mean=True, decibels=False):
+    def result(self, baseline=None, channel_mean=True, decibels=False,
+               trial_mean=True):
         elements = [spy.load(element) for element in self.data[0]]
         times = elements[0].sampleinfo[:, 1] - elements[0].sampleinfo[:, 0]
         shape = [len(elements[0].channel), int(times.mean()),
                  len(elements[0].freq)]
-        tfrs = np.zeros(shape)
+        tfrs = []
         ntrials = 0
         for element in elements:
             element_tfrs = element.show()
@@ -273,22 +278,25 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                 element_tfrs = element_tfrs[:, :, :, np.newaxis]
             element_tfrs = np.moveaxis(element_tfrs, 2, 0)
             assert len(element_tfrs.shape) == 4
-            tfrs += element_tfrs.sum(axis=-1)
+            tfrs.append(dask.array.from_array(element_tfrs))
             ntrials += element_tfrs.shape[-1]
             del element_tfrs
         del elements
-        tfrs /= ntrials
+        tfrs = dask.array.concatenate(tfrs, axis=-1)
 
+        if channel_mean:
+            tfrs = tfrs.mean(axis=0, keepdims=True)
         if baseline is not None:
             first = np.abs(self.times - baseline[0]).argmin()
             last = np.abs(self.times - baseline[1]).argmin()
             base_mean = tfrs[:, first:last, :].mean(axis=1, keepdims=True)
             tfrs = (tfrs - base_mean) / base_mean * 100
-        if decibels:
+        elif decibels:
             tfrs = 10 * np.log10(tfrs)
-        if channel_mean:
-            tfrs = tfrs.mean(axis=0)
-        return tfrs
+        if trial_mean:
+            tfrs = tfrs.mean(axis=-1, keepdims=True)
+
+        return tfrs.squeeze().compute()
 
     @property
     def path(self):
