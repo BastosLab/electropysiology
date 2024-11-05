@@ -72,15 +72,55 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         erp = super().evoked()
         return EvokedTfr(erp.channels, erp.data, erp.dt, self.freqs, erp.times)
 
+    def heatmap(self, alpha=None, ax=None, cmap=None, fbottom=0, fig=None,
+                ftop=None, title=None, vlim=None, vmin=None, vmax=None,
+                **events):
+        if fig is None:
+            fig = plt.figure(figsize=(self.plot_width * 4, 3))
+        if alpha is not None:
+            alpha = alpha.squeeze()
+        if ax is None:
+            ax = fig.add_axes((1, 1, 1, 1))
+        if ftop is None:
+            ftop = self.fmax.item()
+        vlim = 2 * self.data.std() if vlim is None else vlim
+        if vmax is None:
+            vmax = vlim
+        if vmin is None:
+            vmin = -vlim
+
+        freqs = self.freqs
+        times = self.times
+        tfrs = self.data.squeeze()
+        title = "Spectrogram" if title is None else title
+        if tfrs.units.dimensionality.string == "%":
+            title += " (% change from baseline)"
+        plotting.heatmap(fig, ax, tfrs.T, alpha=alpha, cmap=cmap, title=title,
+                         vmin=vmin, vmax=vmax)
+
+        ax.set_xlim(0, len(times))
+        xticks = [int(xtick) for xtick in ax.get_xticks()]
+        xticks[-1] = min(xticks[-1], len(times) - 1)
+        ax.set_xticks(xticks, times[xticks].round(decimals=2))
+
+        ax.set_ylim(0, tfrs.shape[-1])
+        yticks = [int(ytick) for ytick in ax.get_yticks()]
+        yticks[-1] = min(yticks[-1], tfrs.shape[-1] - 1)
+        ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
+
+        for (event, (time, color)) in events.items():
+            ymin, ymax = ax.get_ybound()
+            xtime = np.nanargmin(np.abs(times.magnitude - time))
+            ax.vlines(xtime, ymin, ymax, colors=color,
+                      linestyles='dashed', label=event)
+            ax.annotate(event, (xtime + 0.005, ymax))
+
     def plot(self, *args, **kwargs):
-        if "events" in kwargs:
-            events = kwargs.pop("events")
-            def callback(self, ax):
-                for (event, (time, color)) in events.items():
-                    ymin, ymax = ax.get_ybound()
-                    xtime = self.sample_at(time)
-                    ax.vlines(xtime, ymin, ymax, colors=color,
-                              linestyles='dashed', label=event)
-                    ax.annotate(event, (xtime + 0.005, ymax))
-            kwargs["callback"] = callback
         return self.heatmap(*args, **kwargs)
+
+    @property
+    def plot_width(self):
+        width = (self.times[-1] - self.times[0])
+        if hasattr(width, "units"):
+            width = width.magnitude
+        return width
