@@ -33,8 +33,13 @@ def heatmap(fig, ax, data, alpha=None, title=None, cbar=True, vmin=-1e-4,
     img = imagesc(ax, data, alpha=alpha, vmin=vmin, vmax=vmax, origin='lower',
                   cmap=cmap, smooth=smooth)
     if cbar:
-        label = data.units.dimensionality.latex if hasattr(data, 'units')\
-                else None
+        if hasattr(data, "units"):
+            label = data.units.dimensionality.latex
+            if "%" in label:
+                label = label.replace("%", "\%")
+        else:
+            label = None
+
         cbar = fig.colorbar(img, ax=ax, pad=0.01, label=label)
     if title is not None:
         ax.set_title(title)
