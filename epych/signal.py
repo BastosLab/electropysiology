@@ -296,7 +296,7 @@ def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
 
 class EvokedSignal(EpochedSignal):
     def __init__(self, channels, data, dt, timestamps):
-        assert data.shape[2] == 1
+        assert data.shape[-1] == 1
         super().__init__(channels, data, dt, timestamps)
 
     def annotate_channels(self, ax, key):
