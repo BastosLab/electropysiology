@@ -254,17 +254,15 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
             )
             cluster_masks = [clusters[c] for c
                              in np.where(pvals < self.alpha)[0]]
+            mask_shape = ldata.shape[:-1]
             null_mask = np.resize(np.array([False]),
-                                  (ldata.shape[1], ldata.shape[0]))
-            mask = functools.reduce(np.logical_or, cluster_masks, null_mask).T
-
-            lmean, rmean = ldata.mean(axis=-1), rdata.mean(axis=-1)
+                                  mask_shape[1:] + (mask_shape[0],))
+            mask = functools.reduce(np.logical_or, cluster_masks, null_mask)
+            mask = np.expand_dims(np.moveaxis(mask, -1, 0), -1)
+            data = (rdata.mean(axis=-1) - ldata.mean(axis=-1)) * lunits
             self._result = {
-                "mask": mask,
-                "signal": self.data["left"].__class__(
-                    self.data["left"].channels,
-                    (lmean - rmean)[:, :, np.newaxis] * lunits,
-                    self.data["left"].dt, self.data["left"].times
+                "mask": mask, "signal": self.data["left"].__replace__(
+                    data=np.expand_dims(data, -1)
                 ).evoked()
             }
         return self._result
