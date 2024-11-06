@@ -50,6 +50,11 @@ class TimeFrequencyRepr(signal.Signal):
     def fmax(self):
         return self._freqs[-1]
 
+    def __replace__(self, /, **changes):
+        parameters = {field: changes.get(field, getattr(self, field)) for field
+                      in ["channels", "data", "dt", "freqs", "times"]}
+        return self.__class__(*parameters.values())
+
 class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
     def __init__(self, channels: pd.DataFrame, data, dt, freqs, timestamps):
         assert len(data.shape) == 4
