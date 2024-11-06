@@ -248,7 +248,8 @@ class EvokedSampling(Sampling):
         super().__init__(intervals, trials, units, **signals)
 
     def plot(self, alphas={}, vmin=None, vmax=None, dpi=100, figure=None,
-             figargs={}, sigtitle=None, cmap=None, signals=None, **events):
+             figargs={}, sigtitle=None, cmap=None, signals=None, title=None,
+             **events):
         if signals is None:
             signals = list(self.signals.keys())
         timespan = np.array([sig.times[-1] - sig.times[0] for sig in
@@ -272,6 +273,8 @@ class EvokedSampling(Sampling):
                           linestyles='dashed', label=event)
                 ax.annotate(event, (xtime + 0.005, ymax))
 
+        if title is not None:
+            fig.suptitle(title, fontsize=16)
         plt.show()
         if figure is not None:
             fig.savefig(figure, **figargs)

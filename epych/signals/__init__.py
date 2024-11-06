@@ -1,3 +1,3 @@
-from . import lfp
+from . import lfp, tfr
 
-__all__ = ['lfp']
+__all__ = ['lfp', 'tfr']

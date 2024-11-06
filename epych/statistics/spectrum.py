@@ -10,7 +10,7 @@ import scipy.fft as fft
 import syncopy as spy
 from tqdm import tqdm
 
-from .. import plotting, signal, statistic
+from .. import plotting, signal, signals, statistic
 
 mne.set_log_level("CRITICAL")
 
@@ -225,47 +225,10 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             return spy.load(self.data[0][0]).freq
         return self._freqs
 
-    def heatmap(self, ax=None, baseline=None, cmap=None, fbottom=0, fig=None,
-                ftop=None, title=None, vlim=None, vmin=None, vmax=None,
-                **events):
-        if fig is None:
-            fig = plt.figure(figsize=(self.plot_width * 4, 3))
-        if ax is None:
-            ax = fig.add_axes((1, 1, 1, 1))
-        if ftop is None:
-            ftop = self.fmax.item()
-        freqs = self.freqs
-        times = self.times
-        tfrs = self.result(baseline=baseline, channel_mean=True,
-                           trial_mean=True)
-        vlim = 2 * tfrs.std() if vlim is None else vlim
-        title = "Spectrogram" if title is None else title
-        if baseline is not None:
-            title += " (% change from baseline)"
-        plotting.heatmap(fig, ax, tfrs.T, cmap=cmap, title=title, vmin=-vlim,
-                         vmax=vlim)
-
-        ax.set_xlim(0, len(times))
-        xticks = [int(xtick) for xtick in ax.get_xticks()]
-        xticks[-1] = min(xticks[-1], len(times) - 1)
-        ax.set_xticks(xticks, times[xticks].round(decimals=2))
-
-        ax.set_ylim(0, tfrs.shape[-1])
-        yticks = [int(ytick) for ytick in ax.get_yticks()]
-        yticks[-1] = min(yticks[-1], tfrs.shape[-1] - 1)
-        ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
-
-        for (event, (time, color)) in events.items():
-            ymin, ymax = ax.get_ybound()
-            xtime = np.nanargmin(np.abs(times.magnitude - time))
-            ax.vlines(xtime, ymin, ymax, colors=color,
-                      linestyles='dashed', label=event)
-            ax.annotate(event, (xtime + 0.005, ymax))
-
-    def result(self, baseline=None, channel_mean=True, decibels=False,
-               trial_mean=True):
+    def result(self):
         elements = [spy.load(element) for element in self.data[0]]
         times = elements[0].sampleinfo[:, 1] - elements[0].sampleinfo[:, 0]
+        channels = elements[0].channel
         shape = [len(elements[0].channel), int(times.mean()),
                  len(elements[0].freq)]
         tfrs = []
@@ -284,33 +247,13 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         del elements
         tfrs = dask.array.concatenate(tfrs, axis=-1)
 
-        if channel_mean:
-            tfrs = tfrs.mean(axis=0, keepdims=True)
-        if baseline is not None:
-            first = np.abs(self.times - baseline[0]).argmin()
-            last = np.abs(self.times - baseline[1]).argmin()
-            base_mean = tfrs[:, first:last, :].mean(axis=1, keepdims=True)
-            tfrs = (tfrs - base_mean) / base_mean * 100
-        elif decibels:
-            tfrs = 10 * np.log10(tfrs)
-        if trial_mean:
-            tfrs = tfrs.mean(axis=-1, keepdims=True)
-
-        return tfrs.squeeze().compute()
+        return signals.tfr.EpochedTfr(channels, tfrs.compute() * pq.Hz,
+                                      np.diff(self.times).mean(), self.freqs,
+                                      self.times)
 
     @property
     def path(self):
         return self._path
-
-    def plot(self, *args, events={}, **kwargs):
-        return self.heatmap(*args, **kwargs, **events)
-
-    @property
-    def plot_width(self):
-        width = (self.times[-1] - self.times[0])
-        if hasattr(width, "units"):
-            width = width.magnitude
-        return width
 
     @property
     def times(self):
