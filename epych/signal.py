@@ -66,8 +66,7 @@ class Signal(collections.abc.Sequence):
         return 1. / self.dt
 
     def fmap(self, f):
-        return self.__class__(self.channels, f(self.data), self.dt,
-                              self.times)
+        return self.__replace__(data=f(self.data))
 
     @property
     def fNQ(self):
@@ -89,6 +88,11 @@ class Signal(collections.abc.Sequence):
     @property
     def num_trials(self):
         raise NotImplementedError
+
+    def __replace__(self, /, **changes):
+        parameters = {field: changes.get(field, getattr(self, field)) for field
+                      in ["channels", "data", "dt", "times"]}
+        return self.__class__(*parameters.values())
 
     def sample_at(self, t):
         if hasattr(self._timestamps, "units"):
