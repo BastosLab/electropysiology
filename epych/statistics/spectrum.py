@@ -14,9 +14,13 @@ from .. import plotting, signal, signals, statistic
 
 mne.set_log_level("CRITICAL")
 
-THETA_BAND = (1. * pq.Hz, 4. * pq.Hz)
-ALPHA_BETA_BAND = (8. * pq.Hz, 30. * pq.Hz)
-GAMMA_BAND = (50. * pq.Hz, 150. * pq.Hz)
+THETA_BAND = (2. * pq.Hz, 8. * pq.Hz)
+ALPHA_BAND = (8. * pq.Hz, 15 * pq.Hz)
+BETA_BAND = (15. * pq.Hz, 30 * pq.Hz)
+ALPHA_BETA_BAND = (ALPHA_BAND[0], BETA_BAND[1])
+LOW_GAMMA_BAND = (30. * pq.Hz, 50. * pq.Hz)
+HIGH_GAMMA_BAND = (50 * pq.Hz, 90. * pq.Hz)
+GAMMA_BAND = (LOW_GAMMA_BAND[0], HIGH_GAMMA_BAND[1])
 
 class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def __init__(self, df, channels, f0, fmax=150, taper=None, data=None):
