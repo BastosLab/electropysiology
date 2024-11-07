@@ -7,7 +7,7 @@ import pandas as pd
 import quantities as pq
 
 from .. import plotting, signal
-from ..statistics.spectrum import PowerSpectrum
+from ..statistics import spectrum
 
 class TimeFrequencyRepr(signal.Signal):
     def __init__(self, channels: pd.DataFrame, data, dt, freqs, timestamps):
@@ -120,11 +120,16 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
 
         for (event, (time, color)) in events.items():
-            ymin, ymax = ax.get_ybound()
             xtime = np.nanargmin(np.abs(times.magnitude - time))
-            ax.vlines(xtime, ymin, ymax, colors=color,
+            ax.vlines(xtime, *ax.get_ybound(), colors=color,
                       linestyles='dashed', label=event)
             ax.annotate(event, (xtime + 0.005, ymax))
+
+        band_bounds = np.unique(list(spectrum.THETA_BAND) +\
+                                list(spectrum.ALPHA_BETA_BAND) +\
+                                list(spectrum.GAMMA_BAND))
+        yfreqs = [np.nanargmin(np.abs(freqs - bound)) for bound in band_bounds]
+        ax.hlines(yfreqs, *ax.get_xbound(), colors='gray', linestyles='dotted')
 
     def plot(self, *args, **kwargs):
         return self.heatmap(*args, **kwargs)
