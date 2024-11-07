@@ -22,6 +22,13 @@ LOW_GAMMA_BAND = (30. * pq.Hz, 50. * pq.Hz)
 HIGH_GAMMA_BAND = (50 * pq.Hz, 90. * pq.Hz)
 GAMMA_BAND = (LOW_GAMMA_BAND[0], HIGH_GAMMA_BAND[1])
 
+decibel = pq.UnitQuantity(
+    'decibel',
+    0.1 * pq.dimensionless,
+    symbol='dB',
+    aliases=['dBs']
+)
+
 class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def __init__(self, df, channels, f0, fmax=150, taper=None, data=None):
         if not hasattr(fmax, "units"):
