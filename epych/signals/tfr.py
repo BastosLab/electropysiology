@@ -55,6 +55,12 @@ class TimeFrequencyRepr(signal.Signal):
                       in ["channels", "data", "dt", "freqs", "times"]}
         return self.__class__(*parameters.values())
 
+    def select_freqs(self, low, high):
+        low_idx = np.argmin(np.abs(self.freqs - low))
+        high_idx = np.argmin(np.abs(self.freqs - high))
+        return self.__replace__(data=self.data[:, :, low_idx:high_idx, :],
+                                freqs=self.freqs[low_idx:high_idx])
+
 class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
     def __init__(self, channels: pd.DataFrame, data, dt, freqs, timestamps):
         assert len(data.shape) == 4
