@@ -141,7 +141,7 @@ class EpochedSignal(Signal):
         timestamps = timestamps[:num_samples]
 
         data = self.data[:, :num_samples] + sig.data[:, :num_samples]
-        return self.__class__(self.channels, data, self.dt, timestamps)
+        return self.__replace__(data=data, times=timestamps)
 
     def baseline_correct(self, start, stop):
         start, stop = self.sample_at(start), self.sample_at(stop) - 1
@@ -156,7 +156,7 @@ class EpochedSignal(Signal):
     def downsample(self, n):
         channels = self.channels.loc[0::n]
         data = self.data[0::n, :, :]
-        return self.__class__(channels, data, self.dt, self.times)
+        return self.__replace__(channels=channels, data=data)
 
     def epoch(self, intervals, time_shift=0.):
         assert intervals.shape == (self.num_trials, 2)
@@ -171,7 +171,7 @@ class EpochedSignal(Signal):
         units = data[0].units
         data = np.stack([trial[:, :time_length] for trial in data], axis=-1)
         timestamps = np.arange(data.shape[1]) * self.dt + time_shift
-        return self.__class__(self.channels, data * units, self.dt, timestamps)
+        return self.__replace__(data=data * units, times=timestamps)
 
     def evoked(self):
         data = self.data.magnitude.mean(-1, keepdims=True) * self.data.units
@@ -192,8 +192,7 @@ class EpochedSignal(Signal):
 
         key = slice(self.sample_at(key.start), self.sample_at(key.stop),
                     key.step)
-        return self.__class__(self.channels, self.data[:, key], self.dt,
-                              self.times[key])
+        return self.__replace__(data=self.data[:, key], times=self.times[key])
 
     def mask_epochs(self, onsets, offsets):
         assert len(onsets) == len(offsets)
@@ -239,16 +238,14 @@ class EpochedSignal(Signal):
         if "channel" not in channels.columns:
             channels.insert(len(channels.columns), "channel",
                             list(range(len(self.channels))))
-        return self.__class__(channels.loc[mask], self.data[mask, :], self.dt,
-                              self.times)
+        return self.__replace__(channels=channels.loc[mask],
+                                data=self.data[mask, :])
 
     def select_trials(self, trials):
-        return self.__class__(self.channels, self.data[:, :, trials],
-                              self.dt, self.times)
+        return self.__replace__(data=self.data[:, :, trials])
 
     def shift_timestamps(self, offset):
-        return self.__class__(self.channels, self.data, self.dt,
-                              self.times + offset)
+        return self.__replace__(times=self.times + offset)
 
     def __sub__(self, sig):
         assert self.__class__ == sig.__class__
@@ -265,7 +262,7 @@ class EpochedSignal(Signal):
         timestamps = timestamps[:num_samples]
 
         data = self.data[:, :num_samples] - sig.data[:, :num_samples]
-        return self.__class__(self.channels, data, self.dt, timestamps)
+        return self.__replace__(data=data, times=timestamps)
 
     @classmethod
     def unpickle(cls, path):
