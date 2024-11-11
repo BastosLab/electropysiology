@@ -87,14 +87,15 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         return EvokedTfr(erp.channels, erp.data, erp.dt, self.freqs, erp.times)
 
     def heatmap(self, alpha=None, ax=None, cmap=None, fbottom=0, fig=None,
-                ftop=None, title=None, vlim=None, vmin=None, vmax=None,
-                **events):
+                filename=None, ftop=None, title=None, vlim=None, vmin=None,
+                vmax=None, **events):
+        lone = fig is None
         if fig is None:
             fig = plt.figure(figsize=(self.plot_width * 4, 3))
         if alpha is not None:
             alpha = alpha.squeeze()
         if ax is None:
-            ax = fig.add_axes((1, 1, 1, 1))
+            ax = fig.add_subplot()
         if ftop is None:
             ftop = self.fmax.item()
         vlim = 2 * self.data.std() if vlim is None else vlim
@@ -121,6 +122,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         yticks = [int(ytick) for ytick in ax.get_yticks()]
         yticks[-1] = min(yticks[-1], tfrs.shape[-1] - 1)
         ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
+        ymin, ymax = ax.get_ybound()
 
         for (event, (time, color)) in events.items():
             xtime = np.nanargmin(np.abs(times.magnitude - time))
@@ -133,6 +135,14 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
                                 list(spectrum.GAMMA_BAND))
         yfreqs = [np.nanargmin(np.abs(freqs - bound)) for bound in band_bounds]
         ax.hlines(yfreqs, *ax.get_xbound(), colors='gray', linestyles='dotted')
+
+        if lone:
+            fig.set_layout_engine("tight")
+        if filename is not None:
+            fig.savefig(filename, dpi=100)
+        if lone:
+            plt.show()
+            plt.close(fig)
 
     def plot(self, *args, **kwargs):
         return self.heatmap(*args, **kwargs)
