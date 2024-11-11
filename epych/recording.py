@@ -257,7 +257,7 @@ class EvokedSampling(Sampling):
         if hasattr(timespan, "units"):
             timespan = timespan.magnitude
         fig, axes = plt.subplot_mosaic([signals], figsize=(timespan, 3),
-                                       dpi=dpi)
+                                       dpi=dpi, layout="compressed")
 
         for sig, ax in axes.items():
             name = sig
@@ -275,9 +275,9 @@ class EvokedSampling(Sampling):
 
         if title is not None:
             fig.suptitle(title, fontsize=16)
-        plt.show()
         if figure is not None:
             fig.savefig(figure, **figargs)
+        plt.show()
         plt.close(fig)
 
     def plot_signal(self, name, alpha=None, vmin=None, vmax=None, path=None,
