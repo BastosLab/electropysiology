@@ -239,10 +239,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def result(self):
         elements = [spy.load(element) for element in self.data[0]]
         times = elements[0].sampleinfo[:, 1] - elements[0].sampleinfo[:, 0]
-        channels = pd.DataFrame(data=elements[0].channel.astype(np.int32),
-                                columns=["channel"])
-        shape = [len(elements[0].channel), int(times.mean()),
-                 len(elements[0].freq)]
+        shape = [len(self.channels), int(times.mean()), len(elements[0].freq)]
         tfrs = []
         ntrials = 0
         for element in elements:
@@ -259,7 +256,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         del elements
         tfrs = dask.array.concatenate(tfrs, axis=-1)
 
-        return signals.tfr.EpochedTfr(channels, tfrs.compute() * pq.Hz,
+        return signals.tfr.EpochedTfr(self.channels, tfrs.compute() * pq.Hz,
                                       np.diff(self.times).mean(), self.freqs,
                                       self.times)
 
