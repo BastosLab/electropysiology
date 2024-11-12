@@ -125,7 +125,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         ymin, ymax = ax.get_ybound()
 
         for (event, (time, color)) in events.items():
-            xtime = np.nanargmin(np.abs(times.magnitude - time))
+            xtime = self.sample_at(time)
             ax.vlines(xtime, *ax.get_ybound(), colors=color,
                       linestyles='dashed', label=event)
             ax.annotate(event, (xtime + 0.005, ymax))
