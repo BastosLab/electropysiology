@@ -153,3 +153,44 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         if hasattr(width, "units"):
             width = width.magnitude
         return width
+
+class BandPower(signal.Signal):
+    def __init__(self, bands: pd.DataFrame, data, dt, timestamps):
+        super().__init__(bands, data, dt, timestamps)
+
+    def __replace__(self, /, **changes):
+        parameters = {field: changes.get(field, getattr(self, field)) for field
+                      in ["channels", "data", "dt", "freqs", "times"]}
+        return self.__class__(*parameters.values())
+
+class EpochedBandPower(BandPower, signal.EpochedSignal):
+    def __init__(self, bands: pd.DataFrame, data, dt, timestamps):
+        assert len(data.shape) == 4
+        assert len(bands) == data.shape[0]
+        assert len(timestamps) == data.shape[1]
+        assert timestamps.units == dt.units
+
+        super(EpochedBandPower, self).__init__(bands, data, dt, timestamps)
+
+    def evoked(self):
+        erp = super().evoked()
+        return EvokedBandPower(erp.channels, erp.data, erp.dt, erp.times)
+
+class EvokedBandPower(BandPower, signal.EvokedSignal):
+    def __init__(self, bands: pd.DataFrame, data, dt, timestamps):
+        assert data.shape[-1] == 1
+        super(EvokedBandPower, self).__init__(bands, data, dt, timestamps)
+
+    def evoked(self):
+        erp = super().evoked()
+        return EvokedBandPower(erp.channels, erp.data, erp.dt, erp.times)
+
+    def plot(self, *args, **kwargs):
+        return self.line_plot(*args, **kwargs)
+
+    @property
+    def plot_width(self):
+        width = (self.times[-1] - self.times[0])
+        if hasattr(width, "units"):
+            width = width.magnitude
+        return width
