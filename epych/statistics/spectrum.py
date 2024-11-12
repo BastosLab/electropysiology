@@ -146,8 +146,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         self._chunk_trials = chunk_trials
         self._df = df.rescale("Hz")
         self._f0 = f0.rescale("Hz")
-        self._freqs = np.arange(0, fmax.item(), df.item())
-        self._freqs = (self._freqs + df.item()) * df.units
+        self._freqs = np.arange(0, fmax.item() + 1, 0.5)  * df.units
         self._k = 0
         self._taper = taper
         self._path = path
