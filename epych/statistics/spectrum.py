@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 import os
+import pandas as pd
 import quantities as pq
 import scipy.fft as fft
 import syncopy as spy
@@ -239,7 +240,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def result(self):
         elements = [spy.load(element) for element in self.data[0]]
         times = elements[0].sampleinfo[:, 1] - elements[0].sampleinfo[:, 0]
-        channels = elements[0].channel
+        channels = pd.DataFrame(data=elements[0].channel.astype(np.int32),
+                                columns=["channel"])
         shape = [len(elements[0].channel), int(times.mean()),
                  len(elements[0].freq)]
         tfrs = []
