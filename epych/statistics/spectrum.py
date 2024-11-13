@@ -150,7 +150,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         self._k = 0
         self._taper = taper
         self._path = path
-        super().__init__(channels, (int((fmax / df).item()),), data=data)
+        super().__init__(channels.copy(), (int((fmax / df).item()),), data=data)
 
     def apply(self, element: signal.EpochedSignal):
         assert (element.channels == self.channels).all().all()
@@ -197,6 +197,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
             del data
             del trial_xs
+            del tfr
             spy.cleanup(interactive=False)
 
         toi = np.array(tois).mean(axis=0) * element.times[0].units +\
