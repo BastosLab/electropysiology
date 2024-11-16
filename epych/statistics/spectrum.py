@@ -174,17 +174,16 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             cfg.foi = self.freqs.magnitude.squeeze()
             cfg.ft_compat = True
             cfg.keeptrials = 'yes'
-            cfg.method = 'mtmconvol'
+            cfg.method = 'wavelet'
             cfg.output = 'pow'
             cfg.polyremoval = 0
-            cfg.t_ftimwin = 0.2
-            cfg.taper = self._taper
             # Temporal resolution of 80ms.
             cfg.toi = np.arange(
                 0, element.times[-1].magnitude - element.times[0].magnitude,
                 0.04
             )
-            # cfg.toi = "all"
+            cfg.wavelet = "Morlet"
+            cfg.width = 4
             tfr = spy.freqanalysis(cfg, data)
             tois.append(tfr.time[0])
             path, ext = os.path.splitext(tfr.filename)
