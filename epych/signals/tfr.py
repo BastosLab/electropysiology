@@ -134,14 +134,14 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         if baseline is not None:
             bxmin = self.sample_at(baseline[0])
             bxmax = self.sample_at(baseline[1])
-            ax.axvspan(bxmin, bxmax, alpha=0.1, color='g')
-            ax.annotate("Baseline", (bxmin + 0.5, ymax - 1))
+            ax.axvspan(bxmin, bxmax, alpha=0.1, color='k')
+            ax.annotate("Baseline", (bxmin + 0.5, ymax - 10))
 
         for (event, (time, color)) in events.items():
             xtime = self.sample_at(time)
             ax.vlines(xtime, *ax.get_ybound(), colors=color,
                       linestyles='dashed', label=event)
-            ax.annotate(event, (xtime + 0.005, ymax - 1), color=color)
+            ax.annotate(event, (xtime + 0.5, ymax - 10), color=color)
 
         band_bounds = np.unique(list(spectrum.THETA_BAND) +\
                                 list(spectrum.ALPHA_BETA_BAND) +\
