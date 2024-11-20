@@ -42,8 +42,10 @@ def heatmap(fig, ax, data, alpha=None, title=None, cbar=True, vmin=-1e-4,
 
         cbar = fig.colorbar(img, ax=ax, pad=0.01, label=label)
         if cbar_ends:
-            ymin, ymax = cbar.ax.get_ybound()
-            cbar.ax.annotate(cbar_ends[0], (-0, ymax - 0.5))
-            cbar.ax.annotate(cbar_ends[1], (-0, ymin + 0.5))
+            yticks = cbar.ax.get_yticks()
+            yticklabels = cbar.ax.get_yticklabels()
+            yticklabels[-2] = cbar_ends[0]
+            yticklabels[1] = cbar_ends[-1]
+            cbar.ax.set_yticks(yticks[1:-1], yticklabels[1:-1])
     if title is not None:
         ax.set_title(title)
