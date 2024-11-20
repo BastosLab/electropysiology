@@ -88,7 +88,8 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
 
     def heatmap(self, alpha=None, ax=None, cmap=None, fbottom=0, fig=None,
                 filename=None, ftop=None, title=None, vlim=None, vmin=None,
-                vmax=None, baseline=None, cbar_ends=None, **events):
+                vmax=None, baseline=None, cbar_ends=None,
+                tlabel="Time (seconds)", **events):
         lone = fig is None
         if fig is None:
             fig = plt.figure(figsize=(self.plot_width * 4, 3))
@@ -122,7 +123,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         xtick_times = times[xticks].round(decimals=2)
         xtick_times[zerotick_loc] = 0. * xtick_times.units
         ax.set_xticks(xticks, xtick_times)
-        ax.set_xlabel("Time (seconds)")
+        ax.set_xlabel(tlabel)
 
         ax.set_ylim(0, tfrs.shape[-1])
         yticks = [int(ytick) for ytick in ax.get_yticks()]
