@@ -115,14 +115,21 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
 
         ax.set_xlim(0, len(times))
         xticks = [int(xtick) for xtick in ax.get_xticks()]
+        zero_tick = self.sample_at(0.)
+        zerotick_loc = (np.abs(np.array(xticks) - zero_tick)).argmin()
+        xticks.insert(zerotick_loc, zero_tick)
         xticks[-1] = min(xticks[-1], len(times) - 1)
-        ax.set_xticks(xticks, times[xticks].round(decimals=2))
+        xtick_times = times[xticks].round(decimals=2)
+        xtick_times[zerotick_loc] = 0. * xtick_times.units
+        ax.set_xticks(xticks, xtick_times)
+        ax.set_xlabel("Time (seconds)")
 
         ax.set_ylim(0, tfrs.shape[-1])
         yticks = [int(ytick) for ytick in ax.get_yticks()]
         yticks[-1] = min(yticks[-1], tfrs.shape[-1] - 1)
         ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
         ymin, ymax = ax.get_ybound()
+        ax.set_ylabel("Frequency (Hz)")
 
         if baseline is not None:
             bxmin = self.sample_at(baseline[0])
