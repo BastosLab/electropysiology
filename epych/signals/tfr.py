@@ -88,7 +88,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
 
     def heatmap(self, alpha=None, ax=None, cmap=None, fbottom=0, fig=None,
                 filename=None, ftop=None, title=None, vlim=None, vmin=None,
-                vmax=None, baseline=None, **events):
+                vmax=None, baseline=None, cbar_ends=None, **events):
         lone = fig is None
         if fig is None:
             fig = plt.figure(figsize=(self.plot_width * 4, 3))
@@ -111,7 +111,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         if tfrs.units.dimensionality.string == "%":
             title += " (% change from baseline)"
         plotting.heatmap(fig, ax, tfrs.T, alpha=alpha, cmap=cmap, title=title,
-                         vmin=vmin, vmax=vmax)
+                         vmin=vmin, vmax=vmax, cbar_ends=cbar_ends)
 
         ax.set_xlim(0, len(times))
         xticks = [int(xtick) for xtick in ax.get_xticks()]
