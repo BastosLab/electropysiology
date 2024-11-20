@@ -28,7 +28,7 @@ def imagesc(ax, cs, alpha=None, cmap=None, smooth=True, **kwargs):
                      extent=extents(x) + extents(y), cmap=cmap, **kwargs)
 
 def heatmap(fig, ax, data, alpha=None, title=None, cbar=True, vmin=-1e-4,
-            vmax=1e-4, cmap=None, smooth=True):
+            vmax=1e-4, cmap=None, smooth=True, cbar_ends=None):
     cbar = cbar or vmin is None or vmax is None
     img = imagesc(ax, data, alpha=alpha, vmin=vmin, vmax=vmax, origin='lower',
                   cmap=cmap, smooth=smooth)
@@ -41,5 +41,9 @@ def heatmap(fig, ax, data, alpha=None, title=None, cbar=True, vmin=-1e-4,
             label = None
 
         cbar = fig.colorbar(img, ax=ax, pad=0.01, label=label)
+        if cbar_ends:
+            ymin, ymax = cbar.ax.get_ybound()
+            cbar.ax.annotate(cbar_ends[0], (-0, ymax - 0.5))
+            cbar.ax.annotate(cbar_ends[1], (-0, ymin + 0.5))
     if title is not None:
         ax.set_title(title)
