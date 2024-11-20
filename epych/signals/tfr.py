@@ -88,7 +88,8 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
 
     def heatmap(self, alpha=None, ax=None, cmap=None, fbottom=0, fig=None,
                 filename=None, ftop=None, title=None, vlim=None, vmin=None,
-                vmax=None, baseline=None, **events):
+                vmax=None, baseline=None, cbar_ends=None,
+                tlabel="Time (seconds)", **events):
         lone = fig is None
         if fig is None:
             fig = plt.figure(figsize=(self.plot_width * 4, 3))
@@ -111,30 +112,37 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         if tfrs.units.dimensionality.string == "%":
             title += " (% change from baseline)"
         plotting.heatmap(fig, ax, tfrs.T, alpha=alpha, cmap=cmap, title=title,
-                         vmin=vmin, vmax=vmax)
+                         vmin=vmin, vmax=vmax, cbar_ends=cbar_ends)
 
         ax.set_xlim(0, len(times))
         xticks = [int(xtick) for xtick in ax.get_xticks()]
+        zero_tick = self.sample_at(0.)
+        zerotick_loc = (np.abs(np.array(xticks) - zero_tick)).argmin()
+        xticks.insert(zerotick_loc, zero_tick)
         xticks[-1] = min(xticks[-1], len(times) - 1)
-        ax.set_xticks(xticks, times[xticks].round(decimals=2))
+        xtick_times = times[xticks].round(decimals=2)
+        xtick_times[zerotick_loc] = 0. * xtick_times.units
+        ax.set_xticks(xticks, xtick_times)
+        ax.set_xlabel(tlabel)
 
         ax.set_ylim(0, tfrs.shape[-1])
         yticks = [int(ytick) for ytick in ax.get_yticks()]
         yticks[-1] = min(yticks[-1], tfrs.shape[-1] - 1)
         ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
         ymin, ymax = ax.get_ybound()
+        ax.set_ylabel("Frequency (Hz)")
 
         if baseline is not None:
             bxmin = self.sample_at(baseline[0])
             bxmax = self.sample_at(baseline[1])
-            ax.axvspan(bxmin, bxmax, alpha=0.1, color='g')
-            ax.annotate("Baseline", (bxmin + 0.5, ymax - 1))
+            ax.axvspan(bxmin, bxmax, alpha=0.1, color='k')
+            ax.annotate("Baseline", (bxmin + 0.5, ymax - 10))
 
         for (event, (time, color)) in events.items():
             xtime = self.sample_at(time)
             ax.vlines(xtime, *ax.get_ybound(), colors=color,
                       linestyles='dashed', label=event)
-            ax.annotate(event, (xtime + 0.005, ymax - 1), color=color)
+            ax.annotate(event, (xtime + 0.5, ymax - 10), color=color)
 
         band_bounds = np.unique(list(spectrum.THETA_BAND) +\
                                 list(spectrum.ALPHA_BETA_BAND) +\
