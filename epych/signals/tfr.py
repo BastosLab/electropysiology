@@ -88,7 +88,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
 
     def heatmap(self, alpha=None, ax=None, cmap=None, fbottom=0, fig=None,
                 filename=None, ftop=None, title=None, vlim=None, vmin=None,
-                vmax=None, **events):
+                vmax=None, baseline=None, **events):
         lone = fig is None
         if fig is None:
             fig = plt.figure(figsize=(self.plot_width * 4, 3))
@@ -124,11 +124,17 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         ax.set_yticks(yticks, ['{0:,.2f}'.format(f) for f in freqs[yticks]])
         ymin, ymax = ax.get_ybound()
 
+        if baseline is not None:
+            bxmin = self.sample_at(baseline[0])
+            bxmax = self.sample_at(baseline[1])
+            ax.axvspan(bxmin, bxmax, alpha=0.1, color='g')
+            ax.annotate("Baseline", (bxmin + 0.5, ymax - 1))
+
         for (event, (time, color)) in events.items():
             xtime = self.sample_at(time)
             ax.vlines(xtime, *ax.get_ybound(), colors=color,
                       linestyles='dashed', label=event)
-            ax.annotate(event, (xtime + 0.005, ymax))
+            ax.annotate(event, (xtime + 0.005, ymax - 1), color=color)
 
         band_bounds = np.unique(list(spectrum.THETA_BAND) +\
                                 list(spectrum.ALPHA_BETA_BAND) +\
