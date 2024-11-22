@@ -118,7 +118,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         xticks = [int(xtick) for xtick in ax.get_xticks()]
         zero_tick = self.sample_at(0.)
         zerotick_loc = (np.abs(np.array(xticks) - zero_tick)).argmin()
-        xticks.insert(zerotick_loc, zero_tick)
+        xticks[zerotick_loc] = zero_tick
         xticks[-1] = min(xticks[-1], len(times) - 1)
         xtick_times = times[xticks].round(decimals=2)
         xtick_times[zerotick_loc] = 0. * xtick_times.units
