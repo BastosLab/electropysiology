@@ -41,6 +41,9 @@ class TimeFrequencyRepr(signal.Signal):
         data = self.data.magnitude.mean(axis=0, keepdims=True) * self.data.units
         return self.__class__(channels, data, self.dt, self.freqs, self.times)
 
+    def closest_freq(self, f):
+        return np.nanargmin((self.freqs - f) ** 2)
+
     def decibels(self):
         return self.fmap(lambda data: 10 * np.log10(data))
 
