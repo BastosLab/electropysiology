@@ -11,7 +11,7 @@ from ..statistics import spectrum
 
 class TimeFrequencyRepr(signal.Signal):
     def __init__(self, channels: pd.DataFrame, data, dt, freqs, timestamps):
-        self._freqs = freqs
+        self._freqs = freqs.rescale("Hz")
         super().__init__(channels, data, dt, timestamps)
 
     def baseline(self, start, end, decibels=False):
