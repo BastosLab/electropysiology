@@ -14,6 +14,9 @@ class TimeFrequencyRepr(signal.Signal):
         self._freqs = freqs.rescale("Hz")
         super().__init__(channels, data, dt, timestamps)
 
+    def band_power(self, fbottom, ftop):
+        raise NotImplementedError
+
     def baseline(self, start, end, decibels=False):
         first = np.abs(self.times - start).argmin()
         last = np.abs(self.times - end).argmin()
