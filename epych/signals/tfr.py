@@ -79,6 +79,13 @@ class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
 
         super(EpochedTfr, self).__init__(channels, data, dt, freqs, timestamps)
 
+    def band_power(self, fbottom, ftop):
+        ibot = self.closest_freq(fbottom)
+        itop = self.closest_freq(ftop)
+        return signal.EpochedSignal(self.channels,
+                                    self.data[:, :, ibot:itop].mean(axis=2),
+                                    self.dt, self.times)
+
     def evoked(self):
         erp = super().evoked()
         return EvokedTfr(erp.channels, erp.data, erp.dt, self.freqs, erp.times)
