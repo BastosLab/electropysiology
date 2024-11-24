@@ -322,7 +322,7 @@ class EvokedSignal(EpochedSignal):
         ax.set_yticks(minortick_locs, laminar_labels, minor=True)
 
     def line_plot(self, ax=None, fig=None, logspace=False, callback=None,
-                  **kwargs):
+                  title=None, vmin=None, vmax=None, **kwargs):
         if ax is None:
             ax = plt.gca()
         if fig is None:
