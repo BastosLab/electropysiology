@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import dask.array
+import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -191,6 +192,29 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         if hasattr(width, "units"):
             width = width.magnitude
         return width
+
+    def spectrolaminar_plot(self, depth_column="vertical", filename=None,
+                            **bands):
+        pows = {}
+        for name, (low, high, k) in bands.items():
+            pows[k] = self.relative().band_power(low, high).data.magnitude
+            pows[k] = pows[k].mean(axis=1).squeeze()
+        totals = sum(list(pows.values()))
+        pows = {k: v / totals for k, v in pows.items()}
+        depths = self.channel_depths(column=depth_column)
+
+        fig = plt.figure(figsize=(3, (depths[-1] - depths[0]) / 1000 * 4))
+        ax = fig.add_subplot()
+        power_lines = list(itertools.chain(*[[pows[k], depths]
+                                           for (k, v) in pows.items()]))
+        ax.plot(*power_lines)
+        ax.legend(list(pows.keys()))
+        self.annotate_channels(ax, "location", ycolumn="vertical")
+
+        if filename is not None:
+            fig.savefig(filename, dpi=100)
+        plt.show()
+        plt.close(fig)
 
 class BandPower(signal.Signal):
     def __init__(self, bands: pd.DataFrame, data, dt, timestamps):
