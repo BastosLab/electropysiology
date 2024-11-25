@@ -23,6 +23,15 @@ class Signal(collections.abc.Sequence):
         self._dt = dt
         self._timestamps = timestamps
 
+    def cat_channels(self, other):
+        assert self.__class__ == other.__class__
+        assert self.data.units == other.data.units
+        assert np.allclose(self.times, other.times)
+        return self.__replace__(
+            channels=pd.concat(self.channels, other.channels),
+            data=np.concatenate((self.data, other.data), axis=0)
+        )
+
     @property
     def channels(self):
         return self._channels
