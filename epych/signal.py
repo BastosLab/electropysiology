@@ -330,7 +330,19 @@ class EvokedSignal(EpochedSignal):
         data = self.data.T.squeeze()
         if logspace:
             data = np.where(data < 0., -np.log(-data), np.log(data))
-        ax.plot(self.times, data, **kwargs)
+        ax.plot(self.times, data)
+        if title is not None:
+            ax.set_title(title)
+        if vmin is not None or vmax is not None:
+            ax.set_ylim(vmin, vmax)
+
+        if hasattr(self.times, 'units'):
+            unit = list(self.times.units.dimensionality.keys())[0].name
+            ax.set_xlabel((unit + 's').capitalize())
+        if "location" in self.channels.columns:
+            locations = [chan.decode() if isinstance(chan, bytes) else chan
+                         for chan in self.channels["location"].values]
+            ax.legend(locations)
         if callback is not None:
             callback(self, ax)
 
