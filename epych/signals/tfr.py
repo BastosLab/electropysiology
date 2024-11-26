@@ -58,6 +58,11 @@ class TimeFrequencyRepr(signal.Signal):
     def fmax(self):
         return self._freqs[-1]
 
+    def relative(self):
+        return self.__replace__(
+            data=self.data / self.data.max(axis=0)[np.newaxis, :, :, :]
+        )
+
     def __replace__(self, /, **changes):
         parameters = {field: changes.get(field, getattr(self, field)) for field
                       in ["channels", "data", "dt", "freqs", "times"]}
