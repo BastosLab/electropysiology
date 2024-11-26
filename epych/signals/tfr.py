@@ -52,8 +52,7 @@ class TimeFrequencyRepr(signal.Signal):
         return self._freqs
 
     def fmap(self, f):
-        return self.__class__(self.channels, f(self.data), self.dt, self.freqs,
-                              self.times)
+        return self.__replace__(data=f(self.data))
 
     @property
     def fmax(self):
