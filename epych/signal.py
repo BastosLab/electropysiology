@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import pickle
 import scipy
+from statistics import median
 
 from . import plotting
 
@@ -323,14 +324,14 @@ class EvokedSignal(EpochedSignal):
             laminar_channels[layer].append(channel_y)
 
         xmin, xmax = ax.get_xbound()
-        ax.hlines([max(laminar_channels[layer][0] - 1, 0) for layer
-                   in laminar_channels.keys()], xmin, xmax, linestyles=":")
+        crossings = [max(laminar_channels[layer][0] - 1, 0) for layer
+                     in laminar_channels.keys()]
+        ax.hlines(crossings, xmin, xmax, linestyles=":")
         ax.set_yticks([], [])
 
         minortick_locs, laminar_labels = [], []
         for layer in laminar_channels:
-            mid = (len(laminar_channels[layer]) - 1) // 2
-            minortick_locs.append(laminar_channels[layer][mid])
+            minortick_locs.append(median(laminar_channels[layer]))
             laminar_labels.append(layer)
         ax.set_yticks(minortick_locs, laminar_labels, minor=True)
 
