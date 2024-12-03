@@ -208,6 +208,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         power_lines = list(itertools.chain(*[[pows[k], depths]
                                            for (k, v) in pows.items()]))
         ax.plot(*power_lines)
+        ax.set_xlabel("Relative spectral power (out of 1.0)")
         ax.legend(list(pows.keys()))
         self.annotate_channels(ax, "location", ycolumn="vertical")
 
