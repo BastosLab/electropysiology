@@ -31,15 +31,19 @@ decibel = pq.UnitQuantity(
 )
 
 class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
-    def __init__(self, df, channels, f0, fmax=150, taper=None, data=None):
+    def __init__(self, df, channels, f0, fmax=150, freqs=None, taper=None,
+                 data=None):
         if not hasattr(fmax, "units"):
             fmax = np.array(fmax) * pq.Hz
         self._df = df.rescale("Hz")
         self._f0 = f0.rescale("Hz")
-        self._freqs = np.arange(0, fmax.item(), df.item())
-        self._freqs = (self._freqs + df.item()) * df.units
+        if freqs is None:
+            self._freqs = np.arange(0, fmax.item(), df.item())
+            self._freqs = (self._freqs + df.item()) * df.units
+        else:
+            self._freqs = freqs
         self._taper = taper
-        super().__init__(channels, (int((fmax / df).item()),), data=data)
+        super().__init__(channels, (len(self._freqs),), data=data)
 
     def apply(self, element: signal.EpochedSignal):
         assert (element.channels == self.channels).all().all()
@@ -94,8 +98,9 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         return self.fmap(lambda vals: vals.mean(axis=-1))
 
     def fmap(self, f):
-        return self.__class__(self.df, self.channels, self.f0, fmax=self.fmax,
-                              data=f(self.data))
+        return self.__class__(self.df, self.channels, self.f0,
+                              data=f(self.data), fmax=self.fmax,
+                              freqs=self.freqs)
 
     @property
     def f0(self):
