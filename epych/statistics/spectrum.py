@@ -262,9 +262,9 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         tfrs = dask.array.concatenate(tfrs, axis=-1)
 
         pows = tfrs.compute() * pq.mV ** 2 / pq.Hz
-        return signals.tfr.EpochedTfr(self.channels, pows,
-                                      np.diff(self.times).mean(), self.freqs,
-                                      self.times)
+        return signals.tfr.EpochedTfr(self.channels, pows, self.df,
+                                      np.diff(self.times).mean(), self.f0,
+                                      self.freqs, self.times)
 
     @property
     def path(self):
