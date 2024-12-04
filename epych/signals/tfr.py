@@ -4,6 +4,7 @@ import dask.array
 import itertools
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import quantities as pq
 
@@ -209,7 +210,13 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
                                            for (k, v) in pows.items()]))
         ax.plot(*power_lines)
         ax.set_xlabel("Relative spectral power (out of 1.0)")
+        ax.set_xlim([0.2, 0.4])
         ax.legend(list(pows.keys()))
+        location = os.path.commonprefix(
+            [chan.decode() if isinstance(chan, bytes) else chan for chan in
+             self.channels["location"].values]
+        )
+        ax.set_title(location)
         self.annotate_channels(ax, "location", ycolumn="vertical")
 
         if filename is not None:
