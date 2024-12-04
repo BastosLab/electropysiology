@@ -110,6 +110,11 @@ class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
         erp = super().evoked()
         return EvokedTfr(erp.channels, erp.data, erp.dt, self.freqs, erp.times)
 
+    def power_spectrum(self):
+        return spectrum.PowerSpectrum(self.df, self.channels, self.f0,
+                                      fmax=self.freqs[-1], freqs=self.freqs,
+                                      data=self.data.mean(axis=1))
+
 class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
     def __init__(self, channels: pd.DataFrame, data, df, dt, f0, freqs,
                  timestamps):
