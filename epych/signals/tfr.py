@@ -12,7 +12,10 @@ from .. import plotting, signal
 from ..statistics import spectrum
 
 class TimeFrequencyRepr(signal.Signal):
-    def __init__(self, channels: pd.DataFrame, data, dt, freqs, timestamps):
+    def __init__(self, channels: pd.DataFrame, data, df, dt, f0, freqs,
+                 timestamps):
+        self._df = df
+        self._f0 = f0
         self._freqs = freqs
         super().__init__(channels, data, dt, timestamps)
 
@@ -41,13 +44,21 @@ class TimeFrequencyRepr(signal.Signal):
         middle_channel = len(self.channels) // 2
         channels = self.channels[middle_channel:(middle_channel + 1)]
         data = self.data.magnitude.mean(axis=0, keepdims=True) * self.data.units
-        return self.__class__(channels, data, self.dt, self.freqs, self.times)
+        return self.__replace__(channels=channels, data=data)
 
     def closest_freq(self, f):
         return np.nanargmin((self.freqs - f) ** 2)
 
     def decibels(self):
         return self.fmap(lambda data: 10 * np.log10(data))
+
+    @property
+    def df(self):
+        return self._df
+
+    @property
+    def f0(self):
+        return self._f0
 
     @property
     def freqs(self):
@@ -67,7 +78,8 @@ class TimeFrequencyRepr(signal.Signal):
 
     def __replace__(self, /, **changes):
         parameters = {field: changes.get(field, getattr(self, field)) for field
-                      in ["channels", "data", "dt", "freqs", "times"]}
+                      in ["channels", "data", "df", "dt", "f0", "freqs",
+                          "times"]}
         return self.__class__(*parameters.values())
 
     def select_freqs(self, low, high):
@@ -77,13 +89,15 @@ class TimeFrequencyRepr(signal.Signal):
                                 freqs=self.freqs[low_idx:high_idx])
 
 class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
-    def __init__(self, channels: pd.DataFrame, data, dt, freqs, timestamps):
+    def __init__(self, channels: pd.DataFrame, data, df, dt, f0, freqs,
+                 timestamps):
         assert len(data.shape) == 4
         assert len(channels) == data.shape[0]
         assert len(timestamps) == data.shape[1]
         assert timestamps.units == dt.units
 
-        super(EpochedTfr, self).__init__(channels, data, dt, freqs, timestamps)
+        super(EpochedTfr, self).__init__(channels, data, df, dt, f0, freqs,
+                                         timestamps)
 
     def band_power(self, fbottom, ftop):
         ibot = self.closest_freq(fbottom)
@@ -97,9 +111,11 @@ class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
         return EvokedTfr(erp.channels, erp.data, erp.dt, self.freqs, erp.times)
 
 class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
-    def __init__(self, channels: pd.DataFrame, data, dt, freqs, timestamps):
+    def __init__(self, channels: pd.DataFrame, data, df, dt, f0, freqs,
+                 timestamps):
         assert data.shape[-1] == 1
-        super(EvokedTfr, self).__init__(channels, data, dt, freqs, timestamps)
+        super(EvokedTfr, self).__init__(channels, data, df, dt, f0, freqs,
+                                        timestamps)
 
     def band_power(self, fbottom, ftop):
         ibot = self.closest_freq(fbottom)
