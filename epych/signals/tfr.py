@@ -32,8 +32,7 @@ class TimeFrequencyRepr(signal.Signal):
             tfrs = 10 * np.log10(self.data / base_mean) * spectrum.decibel
         else:
             tfrs = (self.data - base_mean) / base_mean * 100 * pq.percent
-        return self.__class__(self.channels, tfrs, self.dt, self.freqs,
-                              self.times)
+        return self.__replace__(data=tfrs)
 
     def channel_depths(self, column=None):
         if column is not None and column in self.channels:
