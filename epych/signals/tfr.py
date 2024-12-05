@@ -140,7 +140,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
                 tlabel="Time (seconds)", **events):
         lone = fig is None
         if fig is None:
-            fig = plt.figure(figsize=(self.plot_width * 4, 3))
+            fig = plt.figure(figsize=(self.plot_width * 4, 3), dpi=100)
         if alpha is not None:
             alpha = alpha.squeeze()
         if ax is None:
@@ -198,8 +198,6 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         yfreqs = [np.nanargmin(np.abs(freqs - bound)) for bound in band_bounds]
         ax.hlines(yfreqs, *ax.get_xbound(), colors='gray', linestyles='dotted')
 
-        if lone:
-            fig.set_layout_engine("tight")
         if filename is not None:
             fig.savefig(filename, dpi=100)
         if lone:
