@@ -217,7 +217,12 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         return width
 
     def spectrolaminar_plot(self, depth_column="vertical", filename=None,
-                            **bands):
+                            title=None, **bands):
+        if title is None:
+            title = os.path.commonprefix(
+                [chan.decode() if isinstance(chan, bytes) else chan for chan in
+                 self.channels["location"].values]
+            )
         pows = {}
         for name, (low, high, k) in bands.items():
             pows[k] = self.relative().band_power(low, high).data.magnitude
@@ -234,11 +239,8 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         ax.set_xlabel("Relative spectral power (out of 1.0)")
         ax.set_xlim([0.2, 0.4])
         ax.legend(list(pows.keys()))
-        location = os.path.commonprefix(
-            [chan.decode() if isinstance(chan, bytes) else chan for chan in
-             self.channels["location"].values]
-        )
-        ax.set_title(location)
+
+        ax.set_title(title)
         self.annotate_channels(ax, "location", ycolumn="vertical")
 
         if filename is not None:
