@@ -107,7 +107,8 @@ class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
 
     def evoked(self):
         erp = super().evoked()
-        return EvokedTfr(erp.channels, erp.data, erp.dt, self.freqs, erp.times)
+        return EvokedTfr(erp.channels, erp.data, erp.df, erp.dt, erp.f0,
+                         self.freqs, erp.times)
 
     def power_spectrum(self):
         return spectrum.PowerSpectrum(self.df, self.channels, self.f0,
@@ -130,7 +131,8 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
 
     def evoked(self):
         erp = super().evoked()
-        return EvokedTfr(erp.channels, erp.data, erp.dt, self.freqs, erp.times)
+        return EvokedTfr(erp.channels, erp.data, erp.df, erp.dt, erp.f0,
+                         self.freqs, erp.times)
 
     def heatmap(self, alpha=None, ax=None, cmap=None, fbottom=0, fig=None,
                 filename=None, ftop=None, title=None, vlim=None, vmin=None,
