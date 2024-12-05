@@ -266,13 +266,7 @@ class EvokedSampling(Sampling):
             alpha = alphas.get(sig, None)
             self.signals[sig].plot(alpha=alpha, ax=ax, fig=fig, title=name,
                                    vmin=vmin, vmax=vmax, cmap=cmap,
-                                   baseline=baseline)
-            for (event, (time, color)) in events.items():
-                ymin, ymax = ax.get_ybound()
-                xtime = self.signals[sig].sample_at(time)
-                ax.vlines(time, ymin, ymax, colors=color,
-                          linestyles='dashed', label=event)
-                ax.annotate(event, (time + 0.005, ymax))
+                                   baseline=baseline, **events)
 
         if title is not None:
             fig.suptitle(title, fontsize=16)
