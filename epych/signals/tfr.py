@@ -214,6 +214,11 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
             width = width.magnitude
         return width
 
+    def power_spectrum(self):
+        return spectrum.PowerSpectrum(self.df, self.channels, self.f0,
+                                      fmax=self.freqs[-1], freqs=self.freqs,
+                                      data=self.data.mean(axis=1))
+
     def spectrolaminar_plot(self, depth_column="vertical", filename=None,
                             title=None, **bands):
         if title is None:
