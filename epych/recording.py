@@ -89,7 +89,7 @@ class Sampling(abc.Sequence):
         return self._intervals
 
     def __len__(self):
-        return math.min(len(signal) for signal in self.signals.values())
+        return min(len(signal) for signal in self.signals.values())
 
     def pickle(self, path):
         assert os.path.isdir(path) or not os.path.exists(path)
