@@ -262,7 +262,8 @@ class EpochedSignal(Signal):
                                 data=self.data[mask, :])
 
     def select_trials(self, trials):
-        return self.__replace__(data=self.data[:, :, trials])
+        trials = trials + [False] * (self.num_trials - len(trials))
+        return self.__replace__(data=self.data[..., trials])
 
     def shift_timestamps(self, offset):
         return self.__replace__(times=self.times + offset)
