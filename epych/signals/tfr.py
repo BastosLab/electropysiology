@@ -240,7 +240,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
                                            for (k, v) in pows.items()]))
         ax.plot(*power_lines)
         ax.set_xlabel("Relative spectral power (out of 1.0)")
-        ax.set_xlim([0.2, 0.4])
+        ax.set_xlim([0.2, 0.5])
         ax.legend(list(pows.keys()))
 
         ax.set_title(title)
