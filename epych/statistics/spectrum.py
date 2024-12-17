@@ -141,17 +141,37 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def freqs(self):
         return self._freqs
 
-    def heatmap(self, fbottom=0, ftop=None, ax=None, fig=None):
-        if ax is None:
-            ax = plt.gca()
+    def heatmap(self, ax=None, channel_ticks="location", fig=None,
+                filename=None, subtitle=None, title="Power Spectral Density",
+                **kwargs):
         if fig is None:
-            fig = plt.gcf()
-        if ftop is None:
-            ftop = self.freqs[0, -1]
+            figure = plt.figure(dpi=100)
+        else:
+            figure = fig
+        if ax is None:
+            axes = figure.add_subplot()
+        else:
+            axes = ax
+        if subtitle:
+            title += " (%s)" % subtitle
 
-        plotting.heatmap(fig, ax, self.data, title="Power Spectral Density",
-                         vmin=0., vmax=self.data.max())
-        ax.set_xlim(left=fbottom, right=ftop)
+        plotting.heatmap(figure, axes, self.data.magnitude, title=title,
+                         **kwargs)
+        axes.set_xlim(0, len(self.freqs))
+        xticks = [int(xtick) for xtick in axes.get_xticks()]
+        xtick_freqs = ["%.1f" % self.freqs[xtick] for xtick in xticks
+                       if xtick < len(self.freqs)] + ["%.1f" % self.freqs[-1]]
+        axes.set_xticks(xticks, xtick_freqs)
+        axes.set_xlabel("Frequency (Hz)")
+
+        if channel_ticks is not None and channel_ticks in self.channels.columns:
+            self.annotate_channels(axes, channel_ticks)
+
+        if filename:
+            figure.savefig(filename, dpi=100)
+        if fig is None:
+            plt.show()
+            plt.close(figure)
 
     def plot_channels(self, stat, ax=None, xlims=None):
         if ax is None:
