@@ -159,6 +159,16 @@ class EpochedSignal(Signal):
             return data - data[:, start:stop].mean(axis=1)[:, np.newaxis, :]
         return self.fmap(f)
 
+    def cat_trials(self, other):
+        assert self.__class__ == other.__class__
+        assert self.data.units == other.data.units
+        assert np.allclose(self.times.magnitude, other.times.magnitude,
+                           atol=self.dt.magnitude)
+        return self.__replace__(
+            data=np.concatenate((self.data, other.data), axis=-1) *\
+                 self.data.units
+        )
+
     @property
     def data(self):
         return self._data
