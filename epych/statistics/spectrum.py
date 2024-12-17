@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import collections
 import dask.array
 import matplotlib.pyplot as plt
 import mne
@@ -8,6 +9,7 @@ import os
 import pandas as pd
 import quantities as pq
 import scipy.fft as fft
+from statistics import median
 import syncopy as spy
 from tqdm import tqdm
 
@@ -44,6 +46,31 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             self._freqs = freqs
         self._taper = taper
         super().__init__(channels, (len(self._freqs),), data=data)
+
+    def annotate_channels(self, ax, key, ycolumn=None):
+        channels = [chan.decode() if isinstance(chan, bytes) else chan
+                    for chan in self.channels[key].values]
+        area = os.path.commonprefix(channels)
+        laminar_channels = collections.defaultdict(lambda: [])
+        for c, chan in enumerate(self.channels[key].values):
+            layer = 'L' + chan.removeprefix(area)
+            if ycolumn is not None:
+                channel_y = self.channels[ycolumn].values[c]
+            else:
+                channel_y = c
+            laminar_channels[layer].append(channel_y)
+
+        xmin, xmax = ax.get_xbound()
+        crossings = [max(laminar_channels[layer][0] - 1, 0) for layer
+                     in laminar_channels.keys()]
+        ax.hlines(crossings, xmin, xmax, linestyles=":")
+        ax.set_yticks([], [])
+
+        minortick_locs, laminar_labels = [], []
+        for layer in laminar_channels:
+            minortick_locs.append(median(laminar_channels[layer]))
+            laminar_labels.append(layer)
+        ax.set_yticks(minortick_locs, laminar_labels, minor=True)
 
     def apply(self, element: signal.EpochedSignal):
         assert (element.channels == self.channels).all().all()
