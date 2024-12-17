@@ -121,7 +121,9 @@ class Sampling(abc.Sequence):
             pickle.dump(other, f)
 
     def select_trials(self, selections):
-        trials = self.trials.loc[selections]
+        extended_selections = selections + [False] *\
+                              (len(self.trials) - len(selections))
+        trials = self.trials.loc[extended_selections]
         signals = {k: s.select_trials(selections) for k, s
                    in self.signals.items()}
         return Sampling(self.intervals, trials, self.units, **signals)
