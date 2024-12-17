@@ -220,7 +220,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
                                       data=self.data.mean(axis=1))
 
     def spectrolaminar_plot(self, depth_column="vertical", filename=None,
-                            title=None, **bands):
+                            title=None, xlims=[0.2, 0.5], **bands):
         if title is None:
             title = os.path.commonprefix(
                 [chan.decode() if isinstance(chan, bytes) else chan for chan in
@@ -240,7 +240,8 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
                                            for (k, v) in pows.items()]))
         ax.plot(*power_lines)
         ax.set_xlabel("Relative spectral power (out of 1.0)")
-        ax.set_xlim([0.2, 0.5])
+        if xlims is not None:
+            ax.set_xlim(xlims)
         ax.legend(list(pows.keys()))
 
         ax.set_title(title)
