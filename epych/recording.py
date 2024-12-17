@@ -54,6 +54,18 @@ class Sampling(abc.Sequence):
     def baseline_correct(self, start, stop):
         return self.smap(lambda v: v.baseline_correct(start, stop))
 
+    def cat_trials(self, other):
+        assert self.signals.keys() == other.signals.keys()
+        trials = self.trials.merge(
+            other.trials,
+            on=list(set(self.trials.columns) & set(other.trials.columns)) + ["trial"]
+        )
+        assert self.units == other.units
+        intervals = empty_intervals()
+        signals = {k: v.cat_trials(other.signals[k]) for k, v
+                   in self.signals.items()}
+        return self.__class__(intervals, trials, self.units, **signals)
+
     def erp(self):
         intervals = []
         for epoch_type in self.intervals["type"].unique():
@@ -90,6 +102,10 @@ class Sampling(abc.Sequence):
 
     def __len__(self):
         return min(len(signal) for signal in self.signals.values())
+
+    @property
+    def num_trials(self):
+        return min(signal.num_trials for signal in self.signals.values())
 
     def pickle(self, path):
         assert os.path.isdir(path) or not os.path.exists(path)
