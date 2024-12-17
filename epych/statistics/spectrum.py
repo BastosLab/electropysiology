@@ -184,8 +184,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         ax.invert_yaxis()
 
     def relative(self):
-        max_pow = self.data.magnitude.max(axis=1, keepdims=True)
-        max_pow = max_pow * self.data.units
+        max_pow = self.data.max(axis=0)[np.newaxis, ...]
         return self.fmap(lambda vals: vals / max_pow)
 
     def result(self):
