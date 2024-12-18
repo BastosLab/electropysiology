@@ -214,7 +214,7 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
 
     def apply(self, element: tuple[T, T]):
         assert self.data["left"] is None and self.data["right"] is None
-        np.isclose(element[0].dt.magnitude, element[1].dt.magnitude)
+        assert np.isclose(element[0].dt.magnitude, element[1].dt.magnitude)
         assert (element[0].channels == element[1].channels).all().all()
 
         return {"left": element[0], "right": element[1]}
@@ -259,7 +259,7 @@ class GrandNonparametricClusterTest(statistic.Statistic[T]):
                                   mask_shape[1:] + (mask_shape[0],))
             mask = functools.reduce(np.logical_or, cluster_masks, null_mask)
             mask = np.expand_dims(np.moveaxis(mask, -1, 0), -1)
-            data = (rdata.mean(axis=-1) - ldata.mean(axis=-1)) * lunits
+            data = (ldata.mean(axis=-1) - rdata.mean(axis=-1)) * lunits
             self._result = {
                 "mask": mask, "signal": self.data["left"].__replace__(
                     data=np.expand_dims(data, -1)
