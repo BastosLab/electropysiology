@@ -113,6 +113,10 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def decibels(self):
         return self.fmap(lambda vals: 10 * np.log10(vals))
 
+    def density(self):
+        normalizer = self.data.sum(axis=1)[:, np.newaxis, ...]
+        return self.fmap(lambda vals: vals / normalizer)
+
     @property
     def df(self):
         return self._df
