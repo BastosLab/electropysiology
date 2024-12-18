@@ -139,7 +139,7 @@ class EpochedSignal(Signal):
     def __add__(self, sig):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
-        assert self.dt == sig.dt
+        assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
@@ -271,7 +271,7 @@ class EpochedSignal(Signal):
     def __sub__(self, sig):
         assert self.__class__ == sig.__class__
         assert (self.channels == sig.channels).all().all()
-        assert self.dt == sig.dt
+        assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
         if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
