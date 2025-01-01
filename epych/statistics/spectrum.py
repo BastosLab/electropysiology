@@ -73,18 +73,20 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         ax.set_yticks(minortick_locs, laminar_labels, minor=True)
 
     def apply(self, element: signal.EpochedSignal):
-        assert (element.channels == self.channels).all().all()
-        assert element.df == self.df
-        assert element.f0 >= self.f0
+        assert (element.channels.location == self.channels.location).all().all()
+        assert np.isclose(element.df.magnitude, self.df.magnitude)
+        assert element.f0.magnitude >= self.f0.magnitude
 
         channels = [str(ch) for ch in list(self.channels.index.values)]
         xs = element.data.magnitude - element.data.magnitude.mean(axis=-1,
                                                                   keepdims=True)
         xs = mne.EpochsArray(np.moveaxis(xs, -1, 0),
-                             mne.create_info(channels, self.f0.item()),
-                             tmin=element.times[0].item())
+                             mne.create_info(channels, int(self.f0.item())),
+                             proj=False)
+
         data = spy.mne_epochs_to_tldata(xs)
         cfg = spy.get_defaults(spy.freqanalysis)
+
         cfg.foi = self.freqs.magnitude.squeeze()
         cfg.ft_compat = True
         cfg.keeptrials = 'yes'
@@ -92,14 +94,15 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         cfg.output = 'pow'
         cfg.parallel = True
         cfg.polyremoval = 0
-        cfg.t_ftimwin = 0.4
         cfg.taper = self._taper
-        cfg.tapsmofrq = 4
-        cfg.toi = "all"
         psd = np.stack(spy.freqanalysis(cfg, data).show(), axis=-1)
+        psd = np.moveaxis(psd, 0, 1)
+
+        del xs
+        del data
 
         if self.data is None:
-            return np.moveaxis(psd, 0, 1)
+            return psd
         return np.concatenate((self.data, psd), axis=-1)
 
     def band_power(self, fbottom, ftop):
