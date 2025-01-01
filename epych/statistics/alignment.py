@@ -39,8 +39,9 @@ class ChannelAlignment(statistic.Statistic[signal.EpochedSignal]):
                    else pd.Series(list(range(len(sig.channels))))
         result = sig.select_channels(channels.isin(range(low, high)).values)
         result.channels.location = locations
-        return result.__class__(result.channels, result.data[:, :num_times],
-                                result.dt, result.times[:num_times])
+        return result.__class__(result.channels.reset_index(drop=True),
+                                result.data[:, :num_times], result.dt,
+                                result.times[:num_times])
 
     def apply(self, element: signal.EpochedSignal):
         channels_index = element.channels.channel if "channel"\
