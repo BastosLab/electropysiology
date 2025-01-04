@@ -95,7 +95,6 @@ class ChannelAlignment(statistic.Statistic[signal.EpochedSignal]):
                      in np.stack(locations, axis=-1)]
         return alignment, locations
 
-
 class LaminarAlignment(ChannelAlignment):
     def __init__(self, area="VIS", data=None):
         self._area = area
