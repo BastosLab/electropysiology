@@ -115,8 +115,25 @@ def laminar_alignment(name, sig):
     area = os.path.commonprefix(list(sig.channels.location.values))
     return LaminarAlignment(area=area)
 
+class SubcorticalAlignment(ChannelAlignment):
+    def __init__(self, probe=("probeA", "VISp"), data=None):
+        self._probe = probe
+        super().__init__(column="location", data=data)
+
+    def center_filter(self, descriptors):
+        return [True] * len(descriptors)
+
+    def column_filter(self, column):
+        return ["DG-" in loc or "CA" in loc or "MB" in loc or "SCi" in loc or
+                "POST" in loc for loc in column.values]
+
+    @property
+    def probe(self):
+        return self._probe
+
 def subcortical_alignment(name, sig):
-    return LaminarAlignment(center_loc=subcortical_median)
+    area = os.path.commonprefix(list(sig.channels.location.values))
+    return SubcorticalAlignment(probe=(name, area))
 
 def location_prefix(probe, sig: signal.Signal):
     return os.path.commonprefix(list(sig.channels.location.values))
