@@ -135,6 +135,9 @@ def subcortical_alignment(name, sig):
     area = os.path.commonprefix(list(sig.channels.location.values))
     return SubcorticalAlignment(probe=(name, area))
 
+def location_title(area, sig):
+    return area
+
 def location_prefix(probe, sig: signal.Signal):
     return os.path.commonprefix(list(sig.channels.location.values))
 
@@ -147,7 +150,7 @@ class AlignmentSummary(statistic.Summary):
         super().__init__(signal_key, alignment)
 
     @classmethod
-    def unpickle(cls, path):
+    def unpickle(cls, path, statcls=LaminarAlignment):
         assert os.path.isdir(path)
 
         with open(path + "/summary.pickle", mode="rb") as f:
@@ -156,6 +159,6 @@ class AlignmentSummary(statistic.Summary):
         ls = [entry for (entry, _, _) in os.walk(path) if os.path.isdir(entry)]
         for entry in sorted(ls[1:]):
             entry = os.path.relpath(entry, start=path)
-            self._stats[entry] = LaminarAlignment.unpickle(path + "/" + entry)
-        self._statistic = LaminarAlignment
+            self._stats[entry] = statcls.unpickle(path + "/" + entry)
+        self._statistic = statcls
         return self
