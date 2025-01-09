@@ -45,6 +45,12 @@ class TimeFrequencyRepr(signal.Signal):
         data = self.data.magnitude.mean(axis=0, keepdims=True) * self.data.units
         return self.__replace__(channels=channels, data=data)
 
+    def channel_sum(self):
+        middle_channel = len(self.channels) // 2
+        channels = self.channels[middle_channel:(middle_channel + 1)]
+        data = self.data.magnitude.sum(axis=0, keepdims=True) * self.data.units
+        return self.__replace__(channels=channels, data=data)
+
     def closest_freq(self, f):
         return np.nanargmin((self.freqs - f) ** 2)
 
