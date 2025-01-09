@@ -327,7 +327,8 @@ class EvokedSignal(EpochedSignal):
         area = os.path.commonprefix(channels)
         laminar_channels = collections.defaultdict(lambda: [])
         for c, chan in enumerate(self.channels[key].values):
-            layer = 'L' + chan.removeprefix(area)
+            layer = chan.removeprefix(area)
+            layer = chan if "" in [layer, area] else 'L' + layer
             if ycolumn is not None:
                 channel_y = self.channels[ycolumn].values[c]
             else:
