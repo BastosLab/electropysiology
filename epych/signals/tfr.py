@@ -161,7 +161,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
 
         freqs = self.freqs
         times = self.times
-        tfrs = self.data.squeeze()
+        tfrs = self.channel_sum().data.squeeze()
         title = "Spectrogram" if title is None else title
         if tfrs.units.dimensionality.string == "%":
             title += " (% change from baseline)"
