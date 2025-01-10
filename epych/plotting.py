@@ -36,7 +36,7 @@ def heatmap(fig, ax, data, alpha=None, title=None, cbar=True, vmin=-1e-4,
         if hasattr(data, "units"):
             label = data.units.dimensionality.latex
             if "%" in label:
-                label = label.replace("%", "\%")
+                label = label.replace("%", r"\%")
         else:
             label = None
 
