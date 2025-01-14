@@ -55,7 +55,8 @@ class TimeFrequencyRepr(signal.Signal):
         return np.nanargmin((self.freqs - f) ** 2)
 
     def decibels(self):
-        return self.fmap(lambda data: 10 * np.log10(data))
+        dBs = spectrum.decibel
+        return self.fmap(lambda data: 10 * np.log10(data.magnitude) * dBs)
 
     @property
     def df(self):
