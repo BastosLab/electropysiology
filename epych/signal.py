@@ -230,6 +230,23 @@ class EpochedSignal(Signal):
             return result * data.units
         return self.fmap(units_medfilt)
 
+    def __mul__(self, sig):
+        assert self.__class__ == sig.__class__
+        assert (self.channels == sig.channels).all().all()
+        assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
+
+        num_samples = min(self.data.shape[1], sig.data.shape[1])
+        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
+                           atol=self.dt):
+            dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
+            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
+        else:
+            timestamps = self.times
+        timestamps = timestamps[:num_samples]
+
+        data = self.data[:, :num_samples] * sig.data[:, :num_samples]
+        return self.__replace__(data=data, times=timestamps)
+
     @property
     def num_channels(self):
         return self.data.shape[0]
@@ -283,6 +300,23 @@ class EpochedSignal(Signal):
         timestamps = timestamps[:num_samples]
 
         data = self.data[:, :num_samples] - sig.data[:, :num_samples]
+        return self.__replace__(data=data, times=timestamps)
+
+    def __truediv__(self, sig):
+        assert self.__class__ == sig.__class__
+        assert (self.channels == sig.channels).all().all()
+        assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
+
+        num_samples = min(self.data.shape[1], sig.data.shape[1])
+        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
+                           atol=self.dt):
+            dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
+            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
+        else:
+            timestamps = self.times
+        timestamps = timestamps[:num_samples]
+
+        data = self.data[:, :num_samples] / sig.data[:, :num_samples]
         return self.__replace__(data=data, times=timestamps)
 
     @classmethod
