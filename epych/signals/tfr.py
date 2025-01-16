@@ -90,7 +90,7 @@ class TimeFrequencyRepr(signal.Signal):
 
     def select_freqs(self, low, high):
         low_idx = np.argmin(np.abs(self.freqs - low))
-        high_idx = np.argmin(np.abs(self.freqs - high))
+        high_idx = np.argmin(np.abs(self.freqs - high)) + 1
         return self.__replace__(data=self.data[:, :, low_idx:high_idx, :],
                                 freqs=self.freqs[low_idx:high_idx])
 
