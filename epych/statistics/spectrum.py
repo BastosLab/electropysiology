@@ -2,6 +2,7 @@
 
 import collections
 import dask.array
+import fooof
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
@@ -196,6 +197,42 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
     def result(self):
         return self.data.mean(axis=-1)
+
+    def oscillatory(self, mean=True, mode="knee"):
+        if mean:
+            fm = fooof.FOOOF(verbose=False, aperiodic_mode=mode)
+            fm.fit(self.freqs, self.data.magnitude.mean(0).mean(-1),
+                   (THETA_BAND[0].magnitude, GAMMA_BAND[1].magnitude))
+            spec = self.select_freqs(fm.freqs[0], fm.freqs[-1])
+            aperiodic = fm.get_model(component='aperiodic', space='linear')
+            aperiodic = aperiodic[np.newaxis, :, np.newaxis]
+            return (spec.fmap(lambda data: data / aperiodic * data.units),
+                    fm.freqs, aperiodic)
+        else:
+            fg = fooof.FOOOFGroup(verbose=False, aperiodic_mode=mode)
+            powers = np.transpose(self.data.magnitude, axes=(2, 0, 1))
+            fgs = fooof.fit_fooof_3d(fg, self.freqs, powers, n_jobs=-1,
+                                     freq_range=(THETA_BAND[0].magnitude,
+                                                 GAMMA_BAND[1].magnitude))
+            aperiodic = []
+            for tr in range(len(fgs)):
+                aperiodic_chans = []
+                for chan in range(len(fgs[tr].get_results())):
+                    fg = fgs[tr].get_fooof(chan)
+                    aperiodic_chans.append(fg.get_model('aperiodic', 'linear'))
+                aperiodic.append(np.stack(aperiodic_chans, axis=0))
+            aperiodic = np.stack(aperiodic, axis=-1)
+            spec = self.select_freqs(fgs[0].freqs[0], fgs[0].freqs[-1])
+            return (spec.fmap(lambda data: data / aperiodic * data.units),
+                    fgs[0].freqs, aperiodic)
+
+    def select_freqs(self, low, high):
+        low_idx = np.argmin(np.abs(self.freqs - low))
+        high_idx = np.argmin(np.abs(self.freqs - high)) + 1
+        return self.__class__(self.df, self.channels, self.f0,
+                              data=self.data[:, low_idx:high_idx, :],
+                              fmax=self.fmax,
+                              freqs=self.freqs[low_idx:high_idx])
 
 class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def __init__(self, df, channels, f0, chunk_trials=4, fmax=150, taper=None,
