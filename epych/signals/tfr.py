@@ -25,10 +25,14 @@ class TimeFrequencyRepr(signal.Signal):
     def baseline(self, start, end, decibels=False):
         first = np.abs(self.times - start).argmin()
         last = np.abs(self.times - end).argmin()
-        base_mean = self.data[:, first:last, :].magnitude.mean(axis=1,
-                                                               keepdims=True)
+        base_mean = self.data[:, first:last, :].magnitude.mean(
+            axis=1, keepdims=True
+        )
         base_mean = base_mean * self.data.units
-        if decibels:
+
+        if decibels and self.data.units == spectrum.decibel:
+            tfrs = self.data - base_mean
+        elif decibels and self.data.units != spectrum.decibel:
             tfrs = 10 * np.log10(self.data / base_mean) * spectrum.decibel
         else:
             tfrs = (self.data - base_mean) / base_mean * 100 * pq.percent
