@@ -121,6 +121,12 @@ class EpochedTfr(TimeFrequencyRepr, signal.EpochedSignal):
         return EvokedTfr(erp.channels, erp.data, erp.df, erp.dt, erp.f0,
                          self.freqs, erp.times)
 
+    def oscillatory(self, mean=True, mode="knee"):
+        _, freqs, aperiodic = self.power_spectrum().oscillatory(mean, mode)
+        aperiodic = aperiodic[:, np.newaxis, :, :]
+        tfr = self.select_freqs(freqs[0], freqs[-1])
+        return tfr.fmap(lambda data: data / aperiodic * data.units)
+
     def power_spectrum(self):
         return spectrum.PowerSpectrum(self.df, self.channels, self.f0,
                                       fmax=self.freqs[-1], freqs=self.freqs,
