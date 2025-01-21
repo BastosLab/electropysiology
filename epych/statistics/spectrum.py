@@ -198,8 +198,8 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def result(self):
         return self.data.mean(axis=-1)
 
-    def oscillatory(self, mean=True, mode="knee"):
-        if mean:
+    def oscillatory(self, channel_mean=True, mode="knee"):
+        if channel_mean:
             fm = fooof.FOOOF(verbose=False, aperiodic_mode=mode)
             fm.fit(self.freqs, self.data.magnitude.mean(0).mean(-1),
                    (THETA_BAND[0].magnitude, GAMMA_BAND[1].magnitude))
@@ -210,21 +210,18 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
                     fm.freqs, aperiodic)
         else:
             fg = fooof.FOOOFGroup(verbose=False, aperiodic_mode=mode)
-            powers = np.transpose(self.data.magnitude, axes=(2, 0, 1))
-            fgs = fooof.fit_fooof_3d(fg, self.freqs, powers, n_jobs=-1,
-                                     freq_range=(THETA_BAND[0].magnitude,
-                                                 GAMMA_BAND[1].magnitude))
+            powers = self.data.magnitude.mean(axis=-1, keepdims=False)
+            fg.fit(self.freqs, powers, freq_range=(THETA_BAND[0].magnitude,
+                   GAMMA_BAND[1].magnitude), n_jobs=-1)
+
             aperiodic = []
-            for tr in range(len(fgs)):
-                aperiodic_chans = []
-                for chan in range(len(fgs[tr].get_results())):
-                    fg = fgs[tr].get_fooof(chan)
-                    aperiodic_chans.append(fg.get_model('aperiodic', 'linear'))
-                aperiodic.append(np.stack(aperiodic_chans, axis=0))
-            aperiodic = np.stack(aperiodic, axis=-1)
-            spec = self.select_freqs(fgs[0].freqs[0], fgs[0].freqs[-1])
+            for chan in range(len(fg.get_results())):
+                fm = fg.get_fooof(chan)
+                aperiodic.append(fm.get_model('aperiodic', 'linear'))
+            aperiodic = np.stack(aperiodic, axis=0)[:, :, np.newaxis]
+            spec = self.select_freqs(fg.freqs[0], fg.freqs[-1])
             return (spec.fmap(lambda data: data / aperiodic * data.units),
-                    fgs[0].freqs, aperiodic)
+                    fg.freqs, aperiodic)
 
     def select_freqs(self, low, high):
         low_idx = np.argmin(np.abs(self.freqs - low))
