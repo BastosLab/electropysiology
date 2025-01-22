@@ -25,6 +25,7 @@ ALPHA_BETA_BAND = (ALPHA_BAND[0], BETA_BAND[1])
 LOW_GAMMA_BAND = (30. * pq.Hz, 50. * pq.Hz)
 HIGH_GAMMA_BAND = (50 * pq.Hz, 90. * pq.Hz)
 GAMMA_BAND = (LOW_GAMMA_BAND[0], HIGH_GAMMA_BAND[1])
+HIGH_FREQUENCY_BAND = (90. * pq.Hz, 150. * pq.Hz)
 
 decibel = pq.UnitQuantity(
     'decibel',
@@ -202,7 +203,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         if channel_mean:
             fm = fooof.FOOOF(verbose=False, aperiodic_mode=mode)
             fm.fit(self.freqs, self.data.magnitude.mean(0).mean(-1),
-                   (THETA_BAND[0].magnitude, GAMMA_BAND[1].magnitude))
+                   (THETA_BAND[0].magnitude, HIGH_FREQUENCY_BAND[1].magnitude))
             spec = self.select_freqs(fm.freqs[0], fm.freqs[-1])
             aperiodic = fm.get_model(component='aperiodic', space='linear')
             aperiodic = aperiodic[np.newaxis, :, np.newaxis]
@@ -212,7 +213,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             fg = fooof.FOOOFGroup(verbose=False, aperiodic_mode=mode)
             powers = self.data.magnitude.mean(axis=-1, keepdims=False)
             fg.fit(self.freqs, powers, freq_range=(THETA_BAND[0].magnitude,
-                   GAMMA_BAND[1].magnitude), n_jobs=-1)
+                   HIGH_FREQUENCY_BAND[1].magnitude), n_jobs=-1)
 
             aperiodic = []
             for chan in range(len(fg.get_results())):
