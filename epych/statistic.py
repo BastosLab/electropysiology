@@ -3,12 +3,13 @@
 from collections.abc import Iterable
 import copy
 import glob
-import hdf5storage as mat
+import mat73 as mat
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
 import pickle
+import scipy
 import typing
 from typing import Callable, Generic, Optional, TypeVar
 
@@ -47,7 +48,7 @@ class Statistic(Generic[T]):
 
         arrays = {k: v for k, v in self.__dict__.items()
                   if isinstance(v, np.ndarray)}
-        mat.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
+        scipy.io.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
         other = copy.copy(self)
         for k in arrays:
             setattr(other, k, None)
@@ -109,7 +110,7 @@ class ChannelwiseStatistic(Statistic[T]):
                     arrays[k] = v.magnitude
                 else:
                     arrays[k] = v
-        mat.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
+        scipy.io.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
         for k in arrays:
             setattr(other, k, None)
         pickle_filename = path + ("/%s.pickle" % self.__class__.__name__)
