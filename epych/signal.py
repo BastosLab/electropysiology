@@ -142,8 +142,9 @@ class EpochedSignal(Signal):
         assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
-                           atol=self.dt):
+        if not np.allclose(self.times[:num_samples].magnitude,
+                           sig.times[:num_samples].magnitude,
+                           atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
             timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
         else:
@@ -236,8 +237,9 @@ class EpochedSignal(Signal):
         assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
-                           atol=self.dt):
+        if not np.allclose(self.times[:num_samples].magnitude,
+                           sig.times[:num_samples].magnitude,
+                           atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
             timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
         else:
@@ -261,7 +263,7 @@ class EpochedSignal(Signal):
 
         self.channels.to_csv(path + '/channels.csv')
 
-        mat.savemat(path + '/epoched_signal.mat', {
+        scipy.io.savemat(path + '/epoched_signal.mat', {
             "data": self.data.magnitude, "timestamps": self.times.magnitude
         })
         other = copy.copy(self)
@@ -291,8 +293,9 @@ class EpochedSignal(Signal):
         assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
-                           atol=self.dt):
+        if not np.allclose(self.times[:num_samples].magnitude,
+                           sig.times[:num_samples].magnitude,
+                           atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
             timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
         else:
@@ -308,8 +311,9 @@ class EpochedSignal(Signal):
         assert np.isclose(self.dt.magnitude, sig.dt.magnitude)
 
         num_samples = min(self.data.shape[1], sig.data.shape[1])
-        if not np.allclose(self.times[:num_samples], sig.times[:num_samples],
-                           atol=self.dt):
+        if not np.allclose(self.times[:num_samples].magnitude,
+                           sig.times[:num_samples].magnitude,
+                           atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
             timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
         else:
