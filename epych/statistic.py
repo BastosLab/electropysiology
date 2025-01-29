@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 import copy
 import glob
-import mat73 as mat
+import hdf5storage as mat
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -110,7 +110,7 @@ class ChannelwiseStatistic(Statistic[T]):
                     arrays[k] = v.magnitude
                 else:
                     arrays[k] = v
-        scipy.io.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
+        mat.savemat(path + ("/%s.mat" % self.__class__.__name__), arrays)
         for k in arrays:
             setattr(other, k, None)
         pickle_filename = path + ("/%s.pickle" % self.__class__.__name__)
