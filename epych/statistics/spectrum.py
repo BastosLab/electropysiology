@@ -203,7 +203,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         if channel_mean:
             fm = fooof.FOOOF(verbose=False, aperiodic_mode=mode)
             fm.fit(self.freqs, self.data.magnitude.mean(0).mean(-1),
-                   (THETA_BAND[0].magnitude, HIGH_FREQUENCY_BAND[1].magnitude))
+                   (self.freqs[0], self.freqs[-1]))
             spec = self.select_freqs(fm.freqs[0], fm.freqs[-1])
             aperiodic = fm.get_model(component='aperiodic', space='linear')
             aperiodic = aperiodic[np.newaxis, :, np.newaxis]
@@ -212,8 +212,8 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         else:
             fg = fooof.FOOOFGroup(verbose=False, aperiodic_mode=mode)
             powers = self.data.magnitude.mean(axis=-1, keepdims=False)
-            fg.fit(self.freqs, powers, freq_range=(THETA_BAND[0].magnitude,
-                   HIGH_FREQUENCY_BAND[1].magnitude), n_jobs=-1)
+            fg.fit(self.freqs, powers, freq_range=(self.freqs[0],
+                   self.freqs[-1]), n_jobs=-1)
 
             aperiodic = []
             for chan in range(len(fg.get_results())):
