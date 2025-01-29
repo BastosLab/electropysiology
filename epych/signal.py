@@ -3,13 +3,15 @@
 import collections
 import collections.abc
 import copy
-import mat73 as mat
+import gc
+import hdf5storage as mat
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
 import pickle
+import quantities as pq
 import scipy
 from statistics import median
 
@@ -146,7 +148,8 @@ class EpochedSignal(Signal):
                            sig.times[:num_samples].magnitude,
                            atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
-            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
+            timestamps = pq.Quantity(np.arange(0, num_samples * dt, dt),
+                                     self.dt.units)
         else:
             timestamps = self.times
         timestamps = timestamps[:num_samples]
@@ -182,7 +185,7 @@ class EpochedSignal(Signal):
     def epoch(self, intervals, time_shift=0.):
         assert intervals.shape == (self.num_trials, 2)
         if not hasattr(time_shift, "units"):
-            time_shift = time_shift * self.dt.units
+            time_shift = pq.Quantity(time_shift, self.dt.units)
 
         data = []
         for trial, (start, end) in enumerate(intervals):
@@ -195,7 +198,8 @@ class EpochedSignal(Signal):
         return self.__replace__(data=data * units, times=timestamps)
 
     def evoked(self):
-        data = self.data.magnitude.mean(-1, keepdims=True) * self.data.units
+        data = pq.Quantity(self.data.magnitude.mean(-1, keepdims=True),
+                           self.data.units)
         return EvokedSignal(self.channels, data, self.dt, self.times)
 
     def get_data(self, channels, times, trials):
@@ -241,7 +245,8 @@ class EpochedSignal(Signal):
                            sig.times[:num_samples].magnitude,
                            atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
-            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
+            timestamps = pq.Quantity(np.arange(0, num_samples * dt, dt),
+                                     self.dt.units)
         else:
             timestamps = self.times
         timestamps = timestamps[:num_samples]
@@ -263,7 +268,7 @@ class EpochedSignal(Signal):
 
         self.channels.to_csv(path + '/channels.csv')
 
-        scipy.io.savemat(path + '/epoched_signal.mat', {
+        mat.savemat(path + '/epoched_signal.mat', {
             "data": self.data.magnitude, "timestamps": self.times.magnitude
         })
         other = copy.copy(self)
@@ -297,7 +302,8 @@ class EpochedSignal(Signal):
                            sig.times[:num_samples].magnitude,
                            atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
-            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
+            timestamps = pq.Quantity(np.arange(0, num_samples * dt, dt),
+                                     self.dt.units)
         else:
             timestamps = self.times
         timestamps = timestamps[:num_samples]
@@ -315,7 +321,8 @@ class EpochedSignal(Signal):
                            sig.times[:num_samples].magnitude,
                            atol=self.dt.magnitude):
             dt = self.dt.magnitude if hasattr(self.dt, "units") else self.dt
-            timestamps = np.arange(0, num_samples * dt, dt) * self.dt.units
+            timestamps = pq.Quantity(np.arange(0, num_samples * dt, dt),
+                                     self.dt.units)
         else:
             timestamps = self.times
         timestamps = timestamps[:num_samples]
@@ -331,10 +338,13 @@ class EpochedSignal(Signal):
             self = pickle.load(f)
 
         arrays = mat.loadmat(path + '/epoched_signal.mat')
-        self._timestamps = arrays['timestamps'] * self._units["timestamps"]
-        self._data = arrays['data'] * self._units["data"]
+        self._timestamps = pq.Quantity(arrays['timestamps'],
+                                       self._units["timestamps"])
+        self._data = pq.Quantity(arrays['data'], self._units["data"])
         self._channels = pd.read_csv(path + '/channels.csv', index_col=0)
+        del arrays
         del self._units
+        gc.collect()
         return self
 
 def trials_ttest(sa: EpochedSignal, sb: EpochedSignal, pvalue=0.05):
