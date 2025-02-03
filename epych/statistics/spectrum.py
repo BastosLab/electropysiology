@@ -271,8 +271,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             cfg.method = 'mtmconvol'
             cfg.output = 'pow'
             cfg.polyremoval = 0
-            # Temporal resolution of 80ms.
-            cfg.t_ftimwin = 0.3
+            # Temporal resolution of 200ms.
+            cfg.t_ftimwin = 0.200
             cfg.taper = self._taper
             cfg.toi = np.arange(
                 0, element.times[-1].magnitude - element.times[0].magnitude,
