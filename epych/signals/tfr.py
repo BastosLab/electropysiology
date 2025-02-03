@@ -216,7 +216,7 @@ class EvokedTfr(TimeFrequencyRepr, signal.EvokedSignal):
         ax.hlines(yfreqs, *ax.get_xbound(), colors='gray', linestyles='dotted')
 
         if filename is not None:
-            fig.savefig(filename, dpi=100)
+            fig.savefig(filename, dpi=100, bbox_inches="tight")
         if lone:
             plt.show()
             plt.close(fig)
