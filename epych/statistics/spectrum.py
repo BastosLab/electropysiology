@@ -234,7 +234,7 @@ class PowerSpectrum(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
 
 class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
     def __init__(self, df, channels, f0, chunk_trials=4, fmax=150, taper=None,
-                 data=None, path=None):
+                 data=None, path=None, time_window=0.200):
         if not hasattr(fmax, "units"):
             fmax = np.array(fmax) * pq.Hz
         self._chunk_trials = chunk_trials
@@ -243,6 +243,7 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
         self._freqs = np.arange(0, fmax.item() + 1, 0.5)  * df.units
         self._k = 0
         self._taper = taper
+        self._time_window = time_window
         self._path = path
         super().__init__(channels.copy(), (int((fmax / df).item()),), data=data)
 
@@ -271,8 +272,8 @@ class Spectrogram(statistic.ChannelwiseStatistic[signal.EpochedSignal]):
             cfg.method = 'mtmconvol'
             cfg.output = 'pow'
             cfg.polyremoval = 0
-            # Temporal resolution of 200ms.
-            cfg.t_ftimwin = 0.200
+            # Temporal resolution trades off against frequency resolution.
+            cfg.t_ftimwin = self._time_window
             cfg.taper = self._taper
             cfg.toi = np.arange(
                 0, element.times[-1].magnitude - element.times[0].magnitude,
